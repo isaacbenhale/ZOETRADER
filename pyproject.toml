@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zoetrading"
+version = "0.1.0"
+description = "Local, auditable trading assistant for MetaTrader 5."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "Isaac Benhale" }
+]
+dependencies = [
+  "PyYAML>=6.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6"
+]
+mt5 = [
+  "MetaTrader5>=5.0"
+]
+
+[project.scripts]
+zoetrading = "zoetrading.main:cli"
+
+[tool.setuptools.packages.find]
+include = ["zoetrading*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

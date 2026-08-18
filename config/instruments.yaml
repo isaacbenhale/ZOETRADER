@@ -1,0 +1,26 @@
+instruments:
+  - symbol: "Volatility 75 Index"
+    family: synthetic
+    enabled: true
+    timeframes: [M1, M5, M15, H1, H4]
+
+  - symbol: "Volatility 100 Index"
+    family: synthetic
+    enabled: true
+    timeframes: [M1, M5, M15, H1, H4]
+
+  - symbol: "EURUSD"
+    family: forex
+    enabled: true
+    timeframes: [M1, M5, M15, H1, H4]
+
+  - symbol: "GBPUSD"
+    family: forex
+    enabled: true
+    timeframes: [M1, M5, M15, H1, H4]
+
+  - symbol: "XAUUSD"
+    family: forex
+    enabled: true
+    timeframes: [M1, M5, M15, H1, H4]
+

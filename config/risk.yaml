@@ -1,0 +1,14 @@
+risk_per_trade_pct: 0.50
+max_daily_loss_pct: 2.00
+max_weekly_loss_pct: 5.00
+max_open_positions: 3
+max_consecutive_losses: 3
+cooldown_minutes_after_losses: 60
+stop_loss_required: true
+martingale: false
+
+minimum_rr_by_strategy:
+  trend_pullback: 1.5
+  breakout_retest: 1.8
+  range_reversal: 1.3
+

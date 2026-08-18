@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime data
+logs/
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# MetaTrader runtime/build outputs
+*.ex5
+*.log
+MQL5/Logs/
+MQL5/Files/
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+

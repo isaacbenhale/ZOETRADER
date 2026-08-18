@@ -1,0 +1,20 @@
+environment: local
+mode: MONITORING
+log_dir: logs
+data_dir: data
+
+market:
+  refresh_interval_seconds: 5
+  timeframes:
+    context: [H4, H1]
+    setup: [M15, M5]
+    timing: [M5, M1]
+
+decision:
+  minimum_setup_score: 80
+  allow_no_trade: true
+
+execution:
+  require_fresh_market_data: true
+  prevent_duplicate_orders: true
+

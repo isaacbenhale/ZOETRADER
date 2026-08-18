@@ -1,0 +1,80 @@
+"""Shared enumerations for zoeTrading."""
+
+from __future__ import annotations
+
+from enum import StrEnum
+
+
+class RuntimeMode(StrEnum):
+    OFF = "OFF"
+    MONITORING = "MONITORING"
+    MANUAL = "MANUAL"
+    AUTO = "AUTO"
+
+
+class SystemStatus(StrEnum):
+    OFF = "OFF"
+    RUNNING = "RUNNING"
+    PAUSED = "PAUSED"
+    ERROR = "ERROR"
+    KILL_SWITCH = "KILL_SWITCH"
+
+
+class TradeAction(StrEnum):
+    BUY = "BUY"
+    SELL = "SELL"
+    NO_TRADE = "NO_TRADE"
+
+
+class MarketRegime(StrEnum):
+    TRENDING_UP = "TRENDING_UP"
+    TRENDING_DOWN = "TRENDING_DOWN"
+    RANGING = "RANGING"
+    BREAKOUT = "BREAKOUT"
+    HIGH_VOLATILITY = "HIGH_VOLATILITY"
+    LOW_VOLATILITY = "LOW_VOLATILITY"
+    CHAOTIC = "CHAOTIC"
+
+
+class RiskVerdict(StrEnum):
+    APPROVE = "APPROVE"
+    REJECT = "REJECT"
+
+
+class RejectionReason(StrEnum):
+    KILL_SWITCH = "KILL_SWITCH"
+    NO_TRADE = "NO_TRADE"
+    STALE_MARKET_DATA = "STALE_MARKET_DATA"
+    MISSING_STOP_LOSS = "MISSING_STOP_LOSS"
+    RISK_LIMIT_EXCEEDED = "RISK_LIMIT_EXCEEDED"
+    MAX_OPEN_POSITIONS = "MAX_OPEN_POSITIONS"
+    DAILY_LOSS_LIMIT = "DAILY_LOSS_LIMIT"
+    WEEKLY_LOSS_LIMIT = "WEEKLY_LOSS_LIMIT"
+    CONSECUTIVE_LOSS_COOLDOWN = "CONSECUTIVE_LOSS_COOLDOWN"
+    RR_TOO_LOW = "RR_TOO_LOW"
+    DUPLICATE_ORDER = "DUPLICATE_ORDER"
+    INVALID_VOLUME = "INVALID_VOLUME"
+    SYMBOL_UNAVAILABLE = "SYMBOL_UNAVAILABLE"
+    SPREAD_TOO_HIGH = "SPREAD_TOO_HIGH"
+    STRATEGY_BLOCKED = "STRATEGY_BLOCKED"
+    INVALID_CONFIGURATION = "INVALID_CONFIGURATION"
+
+
+class InstrumentFamily(StrEnum):
+    FOREX = "forex"
+    SYNTHETIC = "synthetic"
+
+
+class OrderStatus(StrEnum):
+    PENDING = "PENDING"
+    SENT = "SENT"
+    ACCEPTED = "ACCEPTED"
+    REJECTED = "REJECTED"
+    FAILED = "FAILED"
+
+
+class PositionStatus(StrEnum):
+    OPEN = "OPEN"
+    PARTIALLY_CLOSED = "PARTIALLY_CLOSED"
+    CLOSED = "CLOSED"
+
