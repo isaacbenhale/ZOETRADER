@@ -12,15 +12,19 @@ from zoetrading.domain.enums import (
     TradeAction,
 )
 from zoetrading.domain.models import (
+    Candle,
     Decision,
     MarketSnapshot,
     OrderRequest,
     PositionState,
     RiskDecision,
     Signal,
+    SymbolInfo,
+    Tick,
 )
 
 __all__ = [
+    "Candle",
     "Decision",
     "InstrumentFamily",
     "MarketRegime",
@@ -34,7 +38,8 @@ __all__ = [
     "RiskVerdict",
     "RuntimeMode",
     "Signal",
+    "SymbolInfo",
     "SystemStatus",
+    "Tick",
     "TradeAction",
 ]
-

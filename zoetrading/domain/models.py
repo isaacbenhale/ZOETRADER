@@ -29,6 +29,77 @@ def _require_positive(value: float, field_name: str) -> None:
 
 
 @dataclass(frozen=True)
+class Tick:
+    instrument: str
+    timestamp: datetime
+    bid: float
+    ask: float
+    last: float | None
+    volume: float | None
+    spread: float
+
+    def __post_init__(self) -> None:
+        _require_text(self.instrument, "instrument")
+        _require_positive(self.bid, "bid")
+        _require_positive(self.ask, "ask")
+        if self.ask < self.bid:
+            raise ValueError("ask must be greater than or equal to bid")
+        if self.spread < 0:
+            raise ValueError("spread must be zero or positive")
+
+
+@dataclass(frozen=True)
+class Candle:
+    instrument: str
+    timeframe: str
+    timestamp: datetime
+    open: float
+    high: float
+    low: float
+    close: float
+    tick_volume: int
+    spread: int
+    real_volume: int
+
+    def __post_init__(self) -> None:
+        _require_text(self.instrument, "instrument")
+        _require_text(self.timeframe, "timeframe")
+        for field_name in ("open", "high", "low", "close"):
+            _require_positive(float(getattr(self, field_name)), field_name)
+        if self.high < self.low:
+            raise ValueError("high must be greater than or equal to low")
+        if self.tick_volume < 0:
+            raise ValueError("tick_volume must be zero or positive")
+        if self.spread < 0:
+            raise ValueError("spread must be zero or positive")
+        if self.real_volume < 0:
+            raise ValueError("real_volume must be zero or positive")
+
+
+@dataclass(frozen=True)
+class SymbolInfo:
+    instrument: str
+    visible: bool
+    trade_allowed: bool
+    digits: int
+    point: float
+    volume_min: float
+    volume_max: float
+    volume_step: float
+
+    def __post_init__(self) -> None:
+        _require_text(self.instrument, "instrument")
+        if self.digits < 0:
+            raise ValueError("digits must be zero or positive")
+        _require_positive(self.point, "point")
+        _require_positive(self.volume_min, "volume_min")
+        _require_positive(self.volume_max, "volume_max")
+        _require_positive(self.volume_step, "volume_step")
+        if self.volume_max < self.volume_min:
+            raise ValueError("volume_max must be greater than or equal to volume_min")
+
+
+@dataclass(frozen=True)
 class MarketSnapshot:
     instrument: str
     timeframe: str
