@@ -1,5 +1,7 @@
 # 11 - Monitoring et sorties dynamiques
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Gerer les positions apres entree selon des regles testees.
@@ -17,4 +19,3 @@ Gerer les positions apres entree selon des regles testees.
 - Le monitoring est prioritaire sur la recherche de nouvelles opportunites.
 - Les modifications SL/TP et sorties sont journalisees.
 - Les politiques de sortie sont testees avec donnees historiques ou fixtures.
-

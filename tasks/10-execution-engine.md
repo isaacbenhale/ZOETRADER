@@ -1,5 +1,7 @@
 # 10 - Execution Engine
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Envoyer des ordres MT5 uniquement apres validation complete.
@@ -17,4 +19,3 @@ Envoyer des ordres MT5 uniquement apres validation complete.
 - Un doublon de decision ne cree pas deux ordres.
 - Une erreur broker est journalisee et n'arrete pas le systeme.
 - Le mode `MONITORING` ne peut jamais envoyer d'ordre.
-

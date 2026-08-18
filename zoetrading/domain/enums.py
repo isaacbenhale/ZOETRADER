@@ -78,3 +78,9 @@ class PositionStatus(StrEnum):
     PARTIALLY_CLOSED = "PARTIALLY_CLOSED"
     CLOSED = "CLOSED"
 
+
+class PositionAction(StrEnum):
+    HOLD = "HOLD"
+    MOVE_STOP = "MOVE_STOP"
+    CLOSE = "CLOSE"
+    PARTIAL_CLOSE = "PARTIAL_CLOSE"

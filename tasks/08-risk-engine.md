@@ -1,5 +1,7 @@
 # 08 - Risk Engine
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Construire la couche non contournable qui decide si une opportunite peut etre tradable.
@@ -17,4 +19,3 @@ Construire la couche non contournable qui decide si une opportunite peut etre tr
 - Le Risk Engine peut refuser n'importe quelle proposition.
 - Aucune execution n'est possible sans decision risque positive.
 - Les tests couvrent les cas limites et refus critiques.
-

@@ -1,5 +1,7 @@
 # 12 - EA MQL5 compagnon
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Fournir l'interface MT5 de la V1 sans y deplacer la logique metier principale.
@@ -18,4 +20,3 @@ Fournir l'interface MT5 de la V1 sans y deplacer la logique metier principale.
 - En MANUAL, l'utilisateur peut approuver ou rejeter un signal.
 - Le kill switch est visible et actif.
 - L'EA n'embarque pas le coeur de decision ni le Risk Engine.
-

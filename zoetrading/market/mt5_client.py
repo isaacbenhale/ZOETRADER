@@ -6,7 +6,17 @@ from datetime import UTC, datetime
 from types import ModuleType
 from typing import Any
 
-from zoetrading.domain import Candle, PositionState, PositionStatus, SymbolInfo, Tick, TradeAction
+from zoetrading.domain import (
+    Candle,
+    OrderRequest,
+    OrderResult,
+    OrderStatus,
+    PositionState,
+    PositionStatus,
+    SymbolInfo,
+    Tick,
+    TradeAction,
+)
 from zoetrading.market.errors import MT5ConnectionError, SymbolUnavailableError
 from zoetrading.market.timeframes import mt5_timeframe_constant
 
@@ -119,6 +129,54 @@ class MT5Client:
             return ()
         return tuple(self._to_position(row) for row in raw_positions)
 
+    def send_order(self, order: OrderRequest) -> OrderResult:
+        self.ensure_symbol(order.instrument)
+        order_type = (
+            getattr(self._mt5, "ORDER_TYPE_BUY", 0)
+            if order.action is TradeAction.BUY
+            else getattr(self._mt5, "ORDER_TYPE_SELL", 1)
+        )
+        request = {
+            "action": getattr(self._mt5, "TRADE_ACTION_DEAL", 1),
+            "symbol": order.instrument,
+            "volume": order.volume,
+            "type": order_type,
+            "price": order.entry,
+            "sl": order.stop_loss,
+            "tp": order.take_profit or 0.0,
+            "deviation": 20,
+            "magic": 260817,
+            "comment": order.comment,
+            "type_time": getattr(self._mt5, "ORDER_TIME_GTC", 0),
+            "type_filling": getattr(self._mt5, "ORDER_FILLING_IOC", 1),
+        }
+        raw = self._mt5.order_send(request)
+        if raw is None:
+            return OrderResult(order_id=order.order_id, status=OrderStatus.FAILED, message=str(self.last_error()))
+        retcode = getattr(raw, "retcode", None)
+        success_code = getattr(self._mt5, "TRADE_RETCODE_DONE", 10009)
+        status = OrderStatus.ACCEPTED if retcode == success_code else OrderStatus.REJECTED
+        return OrderResult(
+            order_id=order.order_id,
+            status=status,
+            broker_order_id=str(getattr(raw, "order", "")) or None,
+            message=str(getattr(raw, "comment", "")),
+        )
+
+    def modify_position_stop(self, position_id: str, symbol: str, stop_loss: float, take_profit: float | None) -> bool:
+        self.ensure_connected()
+        request = {
+            "action": getattr(self._mt5, "TRADE_ACTION_SLTP", 6),
+            "position": int(position_id),
+            "symbol": symbol,
+            "sl": stop_loss,
+            "tp": take_profit or 0.0,
+        }
+        raw = self._mt5.order_send(request)
+        if raw is None:
+            return False
+        return getattr(raw, "retcode", None) == getattr(self._mt5, "TRADE_RETCODE_DONE", 10009)
+
     @staticmethod
     def _to_symbol_info(instrument: str, raw: object) -> SymbolInfo:
         return SymbolInfo(
@@ -186,4 +244,3 @@ def _row_getter(row: Any):
             return getattr(row, key)
 
     return get_from_object
-

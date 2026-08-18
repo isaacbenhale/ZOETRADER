@@ -1,5 +1,7 @@
 # 09 - Decision Engine et scoring
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Assembler analyse, regime, strategies et risque en decisions explicables.
@@ -16,4 +18,3 @@ Assembler analyse, regime, strategies et risque en decisions explicables.
 - Une decision contient tous les champs du PRD.
 - `NO_TRADE` est journalise avec justification.
 - Le Risk Engine reste appele apres le scoring et avant toute execution.
-

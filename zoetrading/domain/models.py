@@ -7,6 +7,8 @@ from datetime import UTC, datetime
 
 from zoetrading.domain.enums import (
     MarketRegime,
+    OrderStatus,
+    PositionAction,
     PositionStatus,
     RejectionReason,
     RiskVerdict,
@@ -248,3 +250,31 @@ class PositionState:
         _require_positive(self.current_sl, "current_sl")
         if self.current_tp is not None:
             _require_positive(self.current_tp, "current_tp")
+
+
+@dataclass(frozen=True)
+class OrderResult:
+    order_id: str
+    status: OrderStatus
+    broker_order_id: str | None = None
+    message: str = ""
+
+    def __post_init__(self) -> None:
+        _require_text(self.order_id, "order_id")
+
+
+@dataclass(frozen=True)
+class PositionUpdate:
+    position_id: str
+    action: PositionAction
+    reason: str
+    new_stop_loss: float | None = None
+    close_volume: float | None = None
+
+    def __post_init__(self) -> None:
+        _require_text(self.position_id, "position_id")
+        _require_text(self.reason, "reason")
+        if self.new_stop_loss is not None:
+            _require_positive(self.new_stop_loss, "new_stop_loss")
+        if self.close_volume is not None:
+            _require_positive(self.close_volume, "close_volume")
