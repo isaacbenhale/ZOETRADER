@@ -26,7 +26,7 @@ La couche MT5 est encapsulee et testable sans terminal installe; l'installation 
 Depuis la racine du depot :
 
 ```bash
-python -m zoetrading.main
+python -m zoetrading.main bootstrap
 ```
 
 Sortie attendue :
@@ -39,6 +39,24 @@ config_loaded=true
 ```
 
 Le mode par defaut est `MONITORING`. A ce stade, aucun ordre ne peut etre envoye.
+
+## Test operationnel Windows + MT5
+
+Avec MT5 ouvert et connecte :
+
+```powershell
+python -m zoetrading.main healthcheck
+python -m zoetrading.main scan-once --mode MONITORING --equity 10000
+```
+
+Ou via le script Windows :
+
+```powershell
+.\scripts\start-local.ps1 -Action healthcheck
+.\scripts\start-local.ps1 -Action scan -Mode MONITORING -Equity 10000
+```
+
+Le scan lit les instruments configures, analyse les timeframes, produit des decisions, journalise dans `data/trading.db` et ecrit `data/zoetrading_status.csv` pour l'EA compagnon. `scan-once` n'autorise pas `AUTO`.
 
 ## Tests
 

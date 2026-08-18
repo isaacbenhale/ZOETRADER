@@ -1,9 +1,22 @@
 param(
+    [ValidateSet("bootstrap", "healthcheck", "scan")]
+    [string]$Action = "scan",
     [string]$Mode = "MONITORING",
-    [string]$ConfigDir = "config"
+    [string]$ConfigDir = "config",
+    [double]$Equity = 10000,
+    [string]$JournalDb = "data/trading.db",
+    [string]$StatusFile = "data/zoetrading_status.csv"
 )
 
 $ErrorActionPreference = "Stop"
-Write-Host "Starting zoeTrading locally in $Mode mode"
-python -m zoetrading.main --mode $Mode --config-dir $ConfigDir
+Write-Host "zoeTrading local action: $Action"
 
+if ($Action -eq "bootstrap") {
+    python -m zoetrading.main bootstrap --mode $Mode --config-dir $ConfigDir
+}
+elseif ($Action -eq "healthcheck") {
+    python -m zoetrading.main healthcheck --config-dir $ConfigDir --journal-db $JournalDb
+}
+else {
+    python -m zoetrading.main scan-once --mode $Mode --equity $Equity --config-dir $ConfigDir --journal-db $JournalDb --status-file $StatusFile
+}
