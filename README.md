@@ -14,6 +14,7 @@ Tasks implementees :
 - Task 04 : journal SQLite, logs structures, identifiants uniques et traces de decisions.
 - Task 05 : indicateurs techniques, swings, structure, niveaux, breakout/retest et volatilite.
 - Task 06 : classification de regime, biais multi-timeframe et filtrage strategie/regime.
+- Task 07 : moteur de strategies deterministes avec Trend Pullback, Breakout Retest et Range Reversal.
 
 Le projet contient pour l'instant un point d'entree neutre qui demarre sans connexion MT5 et sans possibilite d'envoyer un ordre. Les modules reels de donnees, analyse, risque et execution seront ajoutes progressivement via les taches dans `tasks/`.
 La couche MT5 est encapsulee et testable sans terminal installe; l'installation Windows avec le package `MetaTrader5` sera requise pour lire les donnees reelles.

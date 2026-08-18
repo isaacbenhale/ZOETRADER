@@ -1,5 +1,7 @@
 # 07 - Moteur de strategies
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Ajouter les premieres strategies deterministes sous forme de modules independants.
@@ -16,4 +18,3 @@ Ajouter les premieres strategies deterministes sous forme de modules independant
 - Chaque strategie retourne une proposition normalisee ou un refus motive.
 - Une strategie inactive pour un regime ne produit pas de faux signal.
 - Les strategies sont testables sans MT5.
-
