@@ -1,5 +1,7 @@
 # 13 - Backtesting et validation
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Prouver ou rejeter les strategies avant toute automatisation reelle.
@@ -17,4 +19,3 @@ Prouver ou rejeter les strategies avant toute automatisation reelle.
 - Une strategie sans expectancy positive hors-echantillon reste interdite en AUTO.
 - Les metriques incluent profit factor, drawdown, win rate, gain/perte moyen, MFE, MAE.
 - Les hypotheses de couts sont explicites.
-

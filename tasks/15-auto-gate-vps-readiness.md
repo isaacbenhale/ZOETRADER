@@ -1,5 +1,7 @@
 # 15 - Gate AUTO et readiness VPS
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Formaliser les conditions de passage en AUTO puis preparer la migration VPS sans modifier la logique metier.
@@ -17,4 +19,3 @@ Formaliser les conditions de passage en AUTO puis preparer la migration VPS sans
 - AUTO reel est bloque sans validation quantitative documentee.
 - Le passage VPS ne change pas strategies, Risk Engine ni Decision Engine.
 - Les differences laptop/VPS sont limitees a environnement, chemins, secrets et supervision.
-

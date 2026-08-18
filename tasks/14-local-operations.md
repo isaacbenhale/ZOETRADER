@@ -1,5 +1,7 @@
 # 14 - Exploitation locale laptop Windows
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Rendre la V1 exploitable localement avec demarrage, supervision minimale et sauvegardes.
@@ -17,4 +19,3 @@ Rendre la V1 exploitable localement avec demarrage, supervision minimale et sauv
 - Le systeme fonctionne sans VPS.
 - L'arret du laptop ou du moteur empeche toute nouvelle logique locale.
 - Les SL/TP deja envoyes au broker restent documentes comme responsabilite broker.
-
