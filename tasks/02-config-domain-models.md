@@ -1,5 +1,7 @@
 # 02 - Configuration et modeles domaine
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Definir les configurations et schemas internes qui stabilisent tout le systeme.
@@ -16,4 +18,3 @@ Definir les configurations et schemas internes qui stabilisent tout le systeme.
 - Une configuration invalide echoue explicitement au demarrage.
 - Les modeles empechent les decisions incompletes.
 - `NO_TRADE`, `REJECT` et `KILL_SWITCH` sont modelises comme etats normaux.
-

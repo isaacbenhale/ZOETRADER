@@ -11,6 +11,8 @@ Depot cible : https://github.com/isaacbenhale/ZOETRADER.git
 - Le projet travaille simplement sur `main`.
 - Les changements peuvent etre commits et pushes directement sur `main` lorsque l'utilisateur le demande.
 - Ne pas creer de branches, PR ou workflow complexe sauf demande explicite.
+- Apres chaque task implementee, ajouter le statut en debut du fichier de task concerne.
+- Apres chaque implementation de task, commit puis push directement sur `main`.
 - Avant un push, verifier rapidement l'etat Git, les fichiers modifies et les tests pertinents.
 
 ## Principe directeur

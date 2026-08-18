@@ -1,5 +1,7 @@
 # 03 - Connexion MT5 et donnees marche
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Connecter le moteur Python au terminal MT5 local et produire des donnees fiables.
@@ -17,4 +19,3 @@ Connecter le moteur Python au terminal MT5 local et produire des donnees fiables
 - Le moteur detecte clairement MT5 absent ou deconnecte.
 - Une erreur sur un symbole ne stoppe pas tout le scanner.
 - Aucune decision n'est produite avec donnees obsoletes.
-

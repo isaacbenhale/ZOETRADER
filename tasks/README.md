@@ -2,7 +2,7 @@
 
 Ce dossier decoupe la construction de zoeTrading en taches progressives. Les taches sont ordonnees pour produire d'abord un noyau local testable, puis les strategies, le risque, l'execution, le monitoring, l'interface MT5 et enfin la validation vers AUTO.
 
-Workflow Git : travailler directement sur `main` et pousser sur `main` lorsque demande. Pas de branches ni PR sauf demande explicite.
+Workflow Git : travailler directement sur `main` et pousser sur `main` apres chaque implementation de task. Pas de branches ni PR sauf demande explicite. Chaque task implementee doit indiquer son statut en debut de fichier.
 
 ## Ordre recommande
 

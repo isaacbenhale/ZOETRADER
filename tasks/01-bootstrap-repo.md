@@ -1,5 +1,7 @@
 # 01 - Bootstrap du depot
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Initialiser une base Python propre, portable et testable pour zoeTrading.
@@ -19,4 +21,3 @@ Initialiser une base Python propre, portable et testable pour zoeTrading.
 - Les tests de base passent.
 - Aucun secret ni fichier runtime n'est versionne.
 - Le depot reste compatible avec le repo cible GitHub.
-

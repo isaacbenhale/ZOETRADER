@@ -1,5 +1,7 @@
 # 04 - Journal SQLite et logs structures
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Rendre le systeme auditable des le debut.
@@ -16,4 +18,3 @@ Rendre le systeme auditable des le debut.
 - Un signal refuse est journalise avec raison.
 - Une decision peut etre reliee a sa configuration.
 - Les logs permettent de reconstruire le chemin decisionnel.
-

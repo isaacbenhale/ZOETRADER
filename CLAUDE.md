@@ -13,6 +13,8 @@ zoeTrading surveille plusieurs instruments, analyse plusieurs timeframes, detect
 - Lire `AGENTS.md`, `VISION.md`, `PRD.md` et les taches `.md` pertinentes avant de modifier le code.
 - Travailler directement sur `main` et pousser sur `main` lorsque l'utilisateur le demande.
 - Ne pas introduire de workflow branches/PR sauf demande explicite.
+- Pour chaque task implementee, ajouter `Statut : IMPLEMENTEE` en debut du fichier de task.
+- Apres chaque implementation de task, commit et push directement sur `main`.
 - Respecter la separation analyse / decision / risque / execution / monitoring / journal.
 - Refuser toute implementation qui contourne le Risk Engine.
 - Ne jamais presenter un score de setup comme une probabilite de gain.
