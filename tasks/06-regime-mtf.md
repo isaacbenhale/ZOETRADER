@@ -1,5 +1,7 @@
 # 06 - Regime de marche et multi-timeframe
 
+Statut : IMPLEMENTEE
+
 ## Objectif
 
 Determiner le contexte exploitable avant d'autoriser une strategie.
@@ -16,4 +18,3 @@ Determiner le contexte exploitable avant d'autoriser une strategie.
 - Une strategie de tendance est bloquee en range non compatible.
 - Un contexte chaotique produit `NO_TRADE`.
 - Les decisions exposent le regime et le biais utilise.
-
