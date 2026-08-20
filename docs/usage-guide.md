@@ -71,8 +71,27 @@ Doit afficher `mode=MONITORING`, `orders_enabled=false`, `config_loaded=true`. S
 2. Copie `mt5/ZoeTradingEA.mq5` dans `MQL5/Experts/`.
 3. Dans MetaEditor, ouvre le fichier et compile (F7).
 4. Dans MT5, glisse `ZoeTradingEA` sur un graphique (n'importe quel symbole surveille). Le panneau affiche l'etat, le dernier signal, et les boutons **APPROVE / REJECT / KILL**.
+5. **Verifie que le bouton "Algo Trading" (ou "AutoTrading") est active dans MT5** -- sans ca, l'EA ne s'execute pas du tout (pas de timer, pas de lecture de fichier).
 
-L'EA lit `data/zoetrading_status.csv` (ecrit par Python) et ecrit `data/zoetrading_command.csv` (lu par Python). Les deux processus communiquent par fichiers, pas de connexion reseau.
+### Important : ou se trouve le fichier de statut
+
+L'EA lit/ecrit via le dossier **partage** MT5 (`FILE_COMMON`), commun a tous les terminaux installes sur la machine :
+
+```
+%APPDATA%\MetaQuotes\Terminal\Common\Files\
+```
+
+C'est un chemin fixe, independant du terminal precis. Python (non sandboxe) doit ecrire son fichier de statut **exactement a cet endroit** pour que l'EA le trouve. Passe donc `--status-file` en pointant vers ce dossier a chaque scan, par exemple :
+
+```powershell
+python -m zoetrading.main scan-once --mode MONITORING --equity 10000 --status-file "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_status.csv"
+```
+
+Si tu ne passes pas ce chemin (ou si tu utilises l'ancien defaut `data/zoetrading_status.csv`), le fichier existe bien cote Python mais **l'EA ne le voit jamais** -- le panneau reste bloque sur "NO SIGNAL / PAUSED" sans erreur visible. C'est le probleme le plus courant si "rien ne s'affiche dans MT5".
+
+### Limite actuelle connue : le bouton APPROVE n'execute encore rien
+
+L'EA ecrit bien une commande dans `zoetrading_command.csv` quand tu cliques APPROVE/REJECT/PAUSE/KILL, mais **aucun code Python ne lit ce fichier pour l'instant**. Le clic est donc journalise cote MT5 uniquement, sans effet cote moteur. C'est une limite connue, pas une regression : le flux complet (clic -> execution reelle de l'ordre) reste a construire avant d'utiliser MANUAL pour de vrai.
 
 ## 6. Healthcheck MT5
 
@@ -101,31 +120,31 @@ Telecharge l'historique reel de chaque instrument, teste les 7 strategies dessus
 ## 8. Mode MONITORING (observer sans risque)
 
 ```powershell
-.\scripts\start-local.ps1 -Action scan -Mode MONITORING -Equity 10000
+.\scripts\start-local.ps1 -Action scan -Mode MONITORING -Equity 10000 -StatusFile "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_status.csv"
 ```
 
-Lance un scan unique : analyse, genere des decisions, journalise dans `data/trading.db`, mais **ne peut envoyer aucun ordre**. Repete ce scan regulierement (manuellement ou via une tache planifiee Windows) pendant plusieurs jours/semaines pour observer les signaux avant de faire confiance au systeme.
+Lance un scan unique : analyse, genere des decisions, journalise dans `data/trading.db`, mais **ne peut envoyer aucun ordre**. Le `-StatusFile` pointant vers `Common\Files` (voir etape 5) est ce qui permet au panneau MT5 de voir le resultat. Repete ce scan regulierement (manuellement ou via une tache planifiee Windows) pendant plusieurs jours/semaines pour observer les signaux avant de faire confiance au systeme.
 
 ## 9. Mode MANUAL (approbation humaine)
 
 Une fois que MONITORING tourne proprement :
 
 ```powershell
-.\scripts\start-local.ps1 -Action scan -Mode MANUAL -Equity 10000
+.\scripts\start-local.ps1 -Action scan -Mode MANUAL -Equity 10000 -StatusFile "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_status.csv"
 ```
 
-Le signal apparait dans le panneau EA sur MT5 (entree, SL, TP, score, regime). Tu cliques **APPROVE** ou **REJECT** directement dans MT5. **KILL** coupe immediatement toute nouvelle entree.
+Le signal apparait dans le panneau EA sur MT5 (entree, SL, TP, score, regime). Tu cliques **APPROVE** ou **REJECT** directement dans MT5. **KILL** coupe immediatement toute nouvelle entree. Rappel : ce clic est journalise cote MT5 mais ne declenche pas encore d'ordre reel cote Python (voir etape 5, limite connue).
 
 ## 10. Interface web locale (suivi visuel)
 
 ```powershell
-python -m zoetrading.main ui
+python -m zoetrading.main ui --status-file "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_status.csv"
 ```
 
 ou via le script :
 
 ```powershell
-.\scripts\start-local.ps1 -Action ui
+.\scripts\start-local.ps1 -Action ui -StatusFile "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_status.csv"
 ```
 
 Ouvre `http://127.0.0.1:8765` dans le navigateur. Le serveur n'ecoute que sur `127.0.0.1` par defaut, jamais expose reseau. Tu y trouves :

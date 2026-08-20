@@ -54,7 +54,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
 
 void LoadStatus()
 {
-   int handle = FileOpen(Zoe_StatusFile, FILE_READ | FILE_CSV | FILE_ANSI);
+   int handle = FileOpen(Zoe_StatusFile, FILE_READ | FILE_CSV | FILE_ANSI | FILE_COMMON);
    if(handle == INVALID_HANDLE)
       return;
 
@@ -78,7 +78,7 @@ void LoadStatus()
 
 void WriteCommand(string command)
 {
-   int handle = FileOpen(Zoe_CommandFile, FILE_WRITE | FILE_CSV | FILE_ANSI);
+   int handle = FileOpen(Zoe_CommandFile, FILE_WRITE | FILE_CSV | FILE_ANSI | FILE_COMMON);
    if(handle == INVALID_HANDLE)
       return;
    FileWrite(handle, "command", command);
