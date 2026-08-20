@@ -19,6 +19,7 @@ Tasks implementees :
 - Tasks 13-15 : backtesting/validation, exploitation locale Windows, gate AUTO et readiness VPS.
 - Task 16 : completion de la bibliotheque de strategies (Structure Continuation, Momentum Breakout, Mean Reversion, Reversal).
 - Task 17 : outil de mesure (backtest) de la bibliotheque de strategies sur historique MT5 reel.
+- Task 18 : interface web locale (React + FastAPI) pour lancer et suivre le systeme, en lecture/lancement uniquement.
 
 Le projet contient pour l'instant un point d'entree neutre qui demarre sans connexion MT5 et sans possibilite d'envoyer un ordre. Les modules reels de donnees, analyse, risque et execution seront ajoutes progressivement via les taches dans `tasks/`.
 La couche MT5 est encapsulee et testable sans terminal installe; l'installation Windows avec le package `MetaTrader5` sera requise pour lire les donnees reelles.
@@ -62,6 +63,15 @@ Ou via le script Windows :
 Le scan lit les instruments configures, analyse les timeframes, produit des decisions, journalise dans `data/trading.db` et ecrit `data/zoetrading_status.csv` pour l'EA compagnon. `scan-once` n'autorise pas `AUTO`.
 
 Le backtest mesure win rate, expectancy, profit factor et drawdown de chaque strategie sur l'historique MT5 reel de chaque instrument, et ecrit `data/backtest_report.json`. C'est une mesure, pas une garantie : aucun resultat passe ne predit un resultat futur.
+
+## Interface web locale
+
+```bash
+pip install -e ".[ui]"
+python -m zoetrading.main ui
+```
+
+Ouvre `http://127.0.0.1:8765`. Le serveur n'ecoute que sur `127.0.0.1` par defaut (aucune exposition reseau). L'interface affiche l'etat, les decisions journalisees et le rapport de backtest, et permet de lancer `bootstrap` / `healthcheck` / `scan` / `backtest`. Elle ne peut ni approuver un ordre ni activer AUTO : l'approbation MANUAL et le kill switch restent dans MT5. Le frontend (React/Vite) est dans `webui/` ; le build est deja commite dans `zoetrading/ui/static/`, donc Node.js n'est necessaire que pour le modifier (voir `webui/README.md`).
 
 ## Tests
 

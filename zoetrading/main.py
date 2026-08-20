@@ -101,6 +101,17 @@ def cli(argv: list[str] | None = None) -> int:
     backtest.add_argument("--lookahead-bars", type=int, default=20)
     backtest.add_argument("--report-file", default="data/backtest_report.json")
 
+    ui = subparsers.add_parser(
+        "ui",
+        help="Serve the local-only web UI (read status/decisions/backtests, launch operations).",
+    )
+    ui.add_argument("--config-dir", default=os.getenv("ZOETRADING_CONFIG_DIR", "config"))
+    ui.add_argument("--journal-db", default="data/trading.db")
+    ui.add_argument("--status-file", default="data/zoetrading_status.csv")
+    ui.add_argument("--report-file", default="data/backtest_report.json")
+    ui.add_argument("--host", default="127.0.0.1", help="Bind address. Keep 127.0.0.1 unless you understand the risk.")
+    ui.add_argument("--port", type=int, default=8765)
+
     args = parser.parse_args(argv)
     command = args.command or "bootstrap"
 
@@ -118,6 +129,8 @@ def cli(argv: list[str] | None = None) -> int:
             return _scan_once(args)
         if command == "backtest":
             return _backtest(args)
+        if command == "ui":
+            return _ui(args)
     except ConfigError as exc:
         parser.exit(status=2, message=f"Configuration error: {exc}\n")
     parser.exit(status=2, message=f"Unknown command: {command}\n")
@@ -246,6 +259,28 @@ def _backtest(args: argparse.Namespace) -> int:
                 "report_file": str(report_path),
             },
         )
+    return 0
+
+
+def _ui(args: argparse.Namespace) -> int:
+    try:
+        import uvicorn
+    except ImportError as exc:
+        print("The local UI requires the 'ui' extra: pip install -e \".[ui]\"")
+        raise SystemExit(2) from exc
+    from zoetrading.ui import create_app
+
+    load_app_config(args.config_dir)  # fail fast on a broken config before serving
+    app = create_app(
+        config_dir=args.config_dir,
+        journal_db=args.journal_db,
+        status_file=args.status_file,
+        report_file=args.report_file,
+    )
+    if args.host not in {"127.0.0.1", "localhost"}:
+        print(f"WARNING: binding zoeTrading UI to {args.host} exposes it beyond this machine.")
+    print(f"zoeTrading UI on http://{args.host}:{args.port} (local only by default, no execution authority)")
+    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
     return 0
 
 

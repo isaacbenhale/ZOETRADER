@@ -373,6 +373,38 @@ class JournalStore:
             config=config,
         )
 
+    def list_recent_decisions(self, limit: int = 50) -> tuple[dict[str, Any], ...]:
+        rows = self._connection.execute(
+            "SELECT payload_json FROM decisions ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return tuple(loads_json(row["payload_json"]) for row in rows)
+
+    def list_recent_events(self, limit: int = 50, *, event_type: str | None = None) -> tuple[dict[str, Any], ...]:
+        if event_type:
+            rows = self._connection.execute(
+                "SELECT event_id, event_type, entity_id, severity, payload_json, created_at "
+                "FROM events WHERE event_type = ? ORDER BY created_at DESC LIMIT ?",
+                (event_type, limit),
+            ).fetchall()
+        else:
+            rows = self._connection.execute(
+                "SELECT event_id, event_type, entity_id, severity, payload_json, created_at "
+                "FROM events ORDER BY created_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return tuple(
+            {
+                "event_id": row["event_id"],
+                "event_type": row["event_type"],
+                "entity_id": row["entity_id"],
+                "severity": row["severity"],
+                "payload": loads_json(row["payload_json"]),
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        )
+
     def analytics_summary(self) -> dict[str, int]:
         return {
             "signals": self._count("signals"),

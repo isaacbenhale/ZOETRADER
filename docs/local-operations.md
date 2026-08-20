@@ -32,3 +32,7 @@ Ces chiffres ne sont **jamais** une garantie de resultat futur : ce sont des mes
 ## Sauvegarde
 
 Utiliser `scripts/backup-local.ps1` pour copier la base SQLite et les configs.
+
+## Interface web locale (suivi visuel)
+
+`python -m zoetrading.main ui` sert une interface web sur `http://127.0.0.1:8765` (jamais expose reseau par defaut) qui affiche l'etat courant, les decisions journalisees et le dernier rapport de backtest, et permet de lancer bootstrap/healthcheck/scan/backtest depuis le navigateur. Elle ne remplace pas MT5 : l'approbation MANUAL (APPROVE/REJECT) et le kill switch restent exclusivement dans le panneau EA. Voir `PRD.md` section "Interface web locale" pour les contraintes.

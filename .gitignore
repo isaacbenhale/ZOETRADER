@@ -9,6 +9,7 @@ __pycache__/
 htmlcov/
 .venv/
 venv/
+*.egg-info/
 
 # Environment and secrets
 .env
@@ -32,4 +33,8 @@ MQL5/Files/
 .DS_Store
 .idea/
 .vscode/
+
+# Local web UI frontend (source in webui/, built output committed in zoetrading/ui/static/)
+webui/node_modules/
+webui/dist/
 

@@ -1,0 +1,259 @@
+:root {
+  --text: #4b4653;
+  --text-h: #08060d;
+  --bg: #fff;
+  --panel-bg: #fafafc;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #7a3bff;
+  --accent-bg: rgba(122, 59, 255, 0.1);
+  --danger: #c4304b;
+  --danger-bg: rgba(196, 48, 75, 0.1);
+  --ok: #1f8a4c;
+  --ok-bg: rgba(31, 138, 76, 0.1);
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 15px/1.5 var(--sans);
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #b7b3c0;
+    --text-h: #f3f4f6;
+    --bg: #121016;
+    --panel-bg: #19161f;
+    --border: #2e2b38;
+    --code-bg: #1f1c28;
+    --accent: #b48bff;
+    --accent-bg: rgba(180, 139, 255, 0.15);
+    --danger: #ff6b83;
+    --danger-bg: rgba(255, 107, 131, 0.15);
+    --ok: #4ade80;
+    --ok-bg: rgba(74, 222, 128, 0.15);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+}
+
+header h1 {
+  font-size: 28px;
+  margin: 0 0 8px;
+  color: var(--text-h);
+}
+
+.banner {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+
+.panel h2 {
+  font-size: 16px;
+  margin: 0 0 10px;
+  color: var(--text-h);
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.85;
+  margin-bottom: 10px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.status-grid.secondary {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.status-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.status-value {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--text-h);
+  word-break: break-word;
+}
+
+.actions-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.actions-row label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  gap: 4px;
+}
+
+.actions-row input,
+.actions-row select {
+  font: inherit;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  width: 110px;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.busy {
+  font-size: 13px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.log {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.log li {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.log pre {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+th {
+  font-size: 11px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.action-buy {
+  color: var(--ok);
+}
+
+.action-sell {
+  color: var(--danger);
+}
+
+.profitable-yes {
+  color: var(--ok);
+}
+
+.profitable-no {
+  color: var(--danger);
+}
+
+.skipped {
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.skipped ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}

@@ -18,10 +18,15 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0",
-  "ruff>=0.6"
+  "ruff>=0.6",
+  "httpx>=0.27"
 ]
 mt5 = [
   "MetaTrader5>=5.0"
+]
+ui = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.29"
 ]
 
 [project.scripts]
@@ -29,6 +34,9 @@ zoetrading = "zoetrading.main:cli"
 
 [tool.setuptools.packages.find]
 include = ["zoetrading*"]
+
+[tool.setuptools.package-data]
+"zoetrading.ui" = ["static/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
