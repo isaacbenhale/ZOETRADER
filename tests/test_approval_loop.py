@@ -174,6 +174,26 @@ class ApprovalLoopTests(unittest.TestCase):
         self.assertEqual(second.outcome, "kill_switch")
         self.assertEqual(second.scanned, 0)
 
+    def test_kill_switch_clicked_between_cycles_is_still_applied(self) -> None:
+        write_command(self.command_file, "KILL_SWITCH", "irrelevant")
+        with JournalStore(self.journal_db) as journal:
+            loop = self._build(journal)
+            result = loop.run_cycle(equity=10_000, candle_count=22)
+
+        self.assertEqual(result.outcome, "kill_switch")
+        self.assertEqual(result.scanned, 0)
+        self.assertTrue(loop.kill_switch)
+
+    def test_pause_clicked_between_cycles_stops_the_next_cycle(self) -> None:
+        write_command(self.command_file, "PAUSE", "irrelevant")
+        with JournalStore(self.journal_db) as journal:
+            loop = self._build(journal)
+            result = loop.run_cycle(equity=10_000, candle_count=22)
+
+        self.assertEqual(result.outcome, "paused")
+        self.assertEqual(result.scanned, 0)
+        self.assertFalse(loop.kill_switch)
+
     def test_stale_command_file_before_cycle_is_dropped(self) -> None:
         write_command(self.command_file, "APPROVE", "leftover-from-last-run")
         with JournalStore(self.journal_db) as journal:

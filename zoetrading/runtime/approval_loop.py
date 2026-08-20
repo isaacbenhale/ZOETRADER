@@ -6,8 +6,10 @@ MT5 side only and never sent an order. This loop is the single place that
 turns an APPROVE click into a real `ExecutionEngine.execute()` call.
 
 Safety properties this relies on:
-- The command file is deleted before every scan, so a leftover click from a
-  previous cycle can never be replayed against a new decision.
+- Any command left over from a previous cycle is read once at the start of
+  the next cycle: KILL_SWITCH/PAUSE are applied immediately (they are not
+  tied to a specific decision), APPROVE/REJECT found here are stale by
+  definition (no proposal was being awaited) and are logged, not executed.
 - The EA echoes back the decision_id it was showing when clicked; a click
   that does not match the decision currently being waited on is ignored
   rather than executed (see `_await_approval`).
@@ -60,7 +62,21 @@ class ManualApprovalLoop:
         self.pending_decision: Decision | None = None
 
     def run_cycle(self, *, equity: float, candle_count: int = 200) -> ApprovalCycleResult:
-        consume_command_file(self.command_file)
+        leftover = read_command_file(self.command_file)
+        if leftover is not None:
+            consume_command_file(self.command_file)
+            if leftover.command == "KILL_SWITCH":
+                self.kill_switch = True
+                self._log_event("kill_switch_engaged", None)
+            elif leftover.command == "PAUSE":
+                self._log_event("manual_paused", None)
+                return ApprovalCycleResult(scanned=0, display_decision=None, outcome="paused")
+            else:
+                self._log_event(
+                    "stale_command_ignored",
+                    None,
+                    payload={"command": leftover.command, "received_decision_id": leftover.decision_id},
+                )
 
         if self.kill_switch:
             return ApprovalCycleResult(scanned=0, display_decision=None, outcome="kill_switch")
