@@ -36,8 +36,8 @@ export default function ActionsPanel({ onScanned, onBacktested }) {
       </p>
 
       <div className="actions-row">
-        <button disabled={busy !== null} onClick={() => run('bootstrap', () => api.bootstrap(mode))}>
-          Bootstrap
+        <button disabled={busy !== null} onClick={() => run('Verifier Config', () => api.bootstrap(mode))}>
+          Verifier Config
         </button>
         <button disabled={busy !== null} onClick={() => run('healthcheck', () => api.healthcheck())}>
           Healthcheck
