@@ -9,6 +9,10 @@ martingale: false
 
 minimum_rr_by_strategy:
   trend_pullback: 1.5
+  structure_continuation: 1.5
   breakout_retest: 1.8
+  momentum_breakout: 1.8
   range_reversal: 1.3
+  mean_reversion: 1.1
+  reversal: 1.5
 

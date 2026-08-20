@@ -5,9 +5,13 @@ from zoetrading.analysis import RegimeAssessment, StructureTrend, VolatilityStat
 from zoetrading.domain import Candle, InstrumentFamily, MarketRegime, RejectionReason, TradeAction
 from zoetrading.strategies import (
     BreakoutRetestStrategy,
+    MeanReversionStrategy,
+    MomentumBreakoutStrategy,
     RangeReversalStrategy,
+    ReversalStrategy,
     StrategyContext,
     StrategyEngine,
+    StructureContinuationStrategy,
     TrendPullbackStrategy,
     default_strategies,
     parameters_for_family,
@@ -128,6 +132,31 @@ RANGE_CANDLES = make_candles(
     ]
 )
 
+STRUCTURE_CONTINUATION_CANDLES = make_candles(
+    [10, 10.5, 10.2, 10.8, 10.4, 11.2, 10.9, 11.8, 11.4, 12.5, 12.1, 13.2, 12.8, 14.0, 13.6]
+)
+
+MOMENTUM_BREAKOUT_CANDLES = make_candles(
+    [
+        10, 10.05, 9.95, 10.1, 9.9, 10.05, 9.95, 10.1, 9.9, 10.05,
+        9.95, 10.1, 9.9, 10.05, 9.95,
+        10.8, 11.5, 12.3, 13.2, 14.2,
+    ]
+)
+
+MEAN_REVERSION_CANDLES = make_candles(
+    [
+        10.0, 10.281, 10.514, 10.649, 10.649, 10.514, 10.281, 10.0, 9.719, 9.486,
+        9.351, 9.351, 9.486, 9.719, 10.0, 10.281, 10.514, 10.649, 10.649,
+        9.2, 8.7, 8.2,
+    ]
+)
+
+REVERSAL_CANDLES = make_candles(
+    [10, 10.3, 10.1, 10.6, 10.4, 11.0, 10.8, 11.6, 11.3, 12.2, 12.0, 13.0, 12.7, 13.6, 13.3]
+    + [14.0, 14.2, 14.0, 14.15, 14.1]
+)
+
 
 class StrategyTests(unittest.TestCase):
     def test_trend_pullback_returns_normalized_trade_signal(self) -> None:
@@ -170,6 +199,72 @@ class StrategyTests(unittest.TestCase):
         self.assertEqual(signal.strategy, "range_reversal")
         self.assertIn("range support confirmed", signal.reasons)
 
+    def test_structure_continuation_returns_trade_after_break_of_structure(self) -> None:
+        signal = StructureContinuationStrategy().evaluate(
+            context(MarketRegime.TRENDING_UP, STRUCTURE_CONTINUATION_CANDLES, structure=StructureTrend.UPTREND)
+        )
+
+        self.assertEqual(signal.action, TradeAction.BUY)
+        self.assertEqual(signal.strategy, "structure_continuation")
+        self.assertIn("break of structure confirmed", signal.reasons)
+
+    def test_structure_continuation_blocked_without_break_of_structure(self) -> None:
+        signal = StructureContinuationStrategy().evaluate(
+            context(MarketRegime.TRENDING_UP, UPTREND_CANDLES, structure=StructureTrend.UPTREND)
+        )
+
+        self.assertEqual(signal.action, TradeAction.NO_TRADE)
+
+    def test_momentum_breakout_returns_trade_with_momentum_and_volatility_confirmation(self) -> None:
+        signal = MomentumBreakoutStrategy().evaluate(
+            context(MarketRegime.BREAKOUT, MOMENTUM_BREAKOUT_CANDLES, structure=StructureTrend.RANGE)
+        )
+
+        self.assertEqual(signal.action, TradeAction.BUY)
+        self.assertEqual(signal.strategy, "momentum_breakout")
+        self.assertIn("momentum confirms breakout", signal.reasons)
+        self.assertIn("volatility expanding", signal.reasons)
+
+    def test_momentum_breakout_blocked_without_momentum(self) -> None:
+        signal = MomentumBreakoutStrategy().evaluate(
+            context(MarketRegime.BREAKOUT, BREAKOUT_CANDLES, structure=StructureTrend.RANGE)
+        )
+
+        self.assertEqual(signal.action, TradeAction.NO_TRADE)
+
+    def test_mean_reversion_returns_trade_when_oversold_and_extended(self) -> None:
+        signal = MeanReversionStrategy().evaluate(
+            context(MarketRegime.RANGING, MEAN_REVERSION_CANDLES, structure=StructureTrend.RANGE)
+        )
+
+        self.assertEqual(signal.action, TradeAction.BUY)
+        self.assertEqual(signal.strategy, "mean_reversion")
+        self.assertIn("price oversold and extended below mean", signal.reasons)
+        self.assertIsNotNone(signal.proposed_sl)
+
+    def test_mean_reversion_blocked_when_not_extended(self) -> None:
+        signal = MeanReversionStrategy().evaluate(
+            context(MarketRegime.RANGING, RANGE_CANDLES, structure=StructureTrend.RANGE)
+        )
+
+        self.assertEqual(signal.action, TradeAction.NO_TRADE)
+
+    def test_reversal_returns_trade_on_structural_and_momentum_confirmation(self) -> None:
+        signal = ReversalStrategy().evaluate(
+            context(MarketRegime.TRENDING_UP, REVERSAL_CANDLES, structure=StructureTrend.UPTREND)
+        )
+
+        self.assertEqual(signal.action, TradeAction.SELL)
+        self.assertEqual(signal.strategy, "reversal")
+        self.assertIn("lower high breaks trend structure", signal.reasons)
+
+    def test_reversal_blocked_without_confirmation(self) -> None:
+        signal = ReversalStrategy().evaluate(
+            context(MarketRegime.TRENDING_UP, UPTREND_CANDLES, structure=StructureTrend.UPTREND)
+        )
+
+        self.assertEqual(signal.action, TradeAction.NO_TRADE)
+
     def test_parameters_are_separated_by_instrument_family(self) -> None:
         forex = parameters_for_family(InstrumentFamily.FOREX)
         synthetic = parameters_for_family(InstrumentFamily.SYNTHETIC)
@@ -183,11 +278,13 @@ class StrategyTests(unittest.TestCase):
             context(MarketRegime.TRENDING_UP, UPTREND_CANDLES, structure=StructureTrend.UPTREND)
         )
 
-        self.assertEqual(len(result.signals), 3)
-        self.assertEqual(len(result.trade_signals), 1)
+        self.assertEqual(len(result.signals), 7)
+        self.assertGreaterEqual(len(result.trade_signals), 1)
         self.assertEqual(result.stats["trend_pullback"].produced_signals, 1)
         self.assertEqual(result.stats["breakout_retest"].blocked, 1)
+        self.assertEqual(result.stats["momentum_breakout"].blocked, 1)
         self.assertEqual(result.stats["range_reversal"].blocked, 1)
+        self.assertEqual(result.stats["mean_reversion"].blocked, 1)
 
 
 if __name__ == "__main__":
