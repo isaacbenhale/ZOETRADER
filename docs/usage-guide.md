@@ -13,7 +13,14 @@ Ordre logique a respecter : `bootstrap` -> `healthcheck` -> `backtest` (mesurer)
 
 ## 1. Installation
 
-Dans un terminal PowerShell, a la racine du depot :
+Si le depot est deja clone sur ce laptop, recupere d'abord les derniers changements :
+
+```powershell
+cd chemin\vers\ZOETRADER
+git pull origin main
+```
+
+Puis, dans un terminal PowerShell, a la racine du depot :
 
 ```powershell
 python -m venv .venv
