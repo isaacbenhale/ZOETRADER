@@ -4,6 +4,8 @@ zoeTrading est un systeme local d'aide, de decision et d'execution algorithmique
 
 Depot cible : https://github.com/isaacbenhale/ZOETRADER.git
 
+Guide d'utilisation complet (installation, config, EA MT5, backtest, interface web) : `docs/usage-guide.md`.
+
 ## Etat actuel
 
 Tasks implementees :
