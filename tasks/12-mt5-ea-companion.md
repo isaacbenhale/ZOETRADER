@@ -6,10 +6,10 @@ Statut : IMPLEMENTEE
 
 Bug signale par l'utilisateur : aucun suivi ni proposition visible dans MT5. Cause trouvee : `FileOpen()` cote EA n'utilisait pas `FILE_COMMON`, donc il lisait/ecrivait dans le dossier sandbox propre au terminal (`MQL5/Files/`) au lieu du dossier partage attendu par le cote Python. Corrige en ajoutant `FILE_COMMON` aux deux appels `FileOpen` ; voir `docs/usage-guide.md` etape 5 pour le chemin exact a utiliser cote Python (`--status-file` doit pointer vers `%APPDATA%\MetaQuotes\Terminal\Common\Files\`).
 
-Deux ecarts restent connus par rapport aux criteres d'acceptation ci-dessous, non corriges par ce fix :
+Deux ecarts avaient ete releves par rapport aux criteres d'acceptation ci-dessous, tous deux fermes par la task 19 :
 
-- Le clic APPROVE/REJECT ecrit bien `zoetrading_command.csv`, mais aucun code Python ne le lit : l'approbation n'a aujourd'hui aucun effet sur l'execution reelle.
-- Les lignes Entry/SL/TP et annotations BUY/SELL sur le graphique (listees dans les livrables) ne sont pas implementees ; seul le panneau texte affiche ces valeurs.
+- Le clic APPROVE/REJECT ecrivait `zoetrading_command.csv` mais rien ne le lisait cote Python. Ferme par `ManualApprovalLoop` (`zoetrading/runtime/approval_loop.py`) et la commande `approve-loop`.
+- Les lignes Entry/SL/TP et annotations BUY/SELL sur le graphique n'etaient pas implementees. Ajoutees dans l'EA (`UpdateChartAnnotations`), limitees au symbole du graphique courant pour eviter d'afficher un niveau d'un autre instrument.
 
 ## Objectif
 

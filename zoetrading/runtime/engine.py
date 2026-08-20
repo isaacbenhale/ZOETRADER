@@ -29,6 +29,10 @@ class RuntimeResult:
     def ok(self) -> bool:
         return self.scanned > 0 and not self.errors
 
+    @property
+    def display_decision(self) -> Decision | None:
+        return select_display_decision(self.decisions)
+
 
 def connect_mt5_from_env(client: MT5Client) -> None:
     login = os.getenv("MT5_LOGIN")
@@ -111,7 +115,7 @@ class RuntimeEngine:
             if self.journal:
                 self.journal.log_decision(decision, config_hash=config_hash)
 
-        selected = _select_display_decision(tuple(decisions))
+        selected = select_display_decision(tuple(decisions))
         write_status_file(
             self.status_file,
             status=SystemStatus.RUNNING if decisions else SystemStatus.ERROR,
@@ -177,7 +181,7 @@ def _first_available(
     raise ValueError("no candles available")
 
 
-def _select_display_decision(decisions: tuple[Decision, ...]) -> Decision | None:
+def select_display_decision(decisions: tuple[Decision, ...]) -> Decision | None:
     trade_decisions = [decision for decision in decisions if decision.final_action is not TradeAction.NO_TRADE]
     if trade_decisions:
         return max(trade_decisions, key=lambda decision: decision.signal.setup_score)

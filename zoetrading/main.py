@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -12,10 +13,11 @@ from zoetrading.backtesting import run_library_backtest
 from zoetrading.config import ConfigError, load_app_config
 from zoetrading.config.models import AppConfig
 from zoetrading.domain import RuntimeMode
+from zoetrading.execution import ExecutionEngine
 from zoetrading.journal import JournalStore
 from zoetrading.market import MT5Client, MT5ConnectionError, MarketDataEngine
 from zoetrading.risk import AccountRiskState
-from zoetrading.runtime import RuntimeEngine, connect_mt5_from_env
+from zoetrading.runtime import ManualApprovalLoop, RuntimeEngine, connect_mt5_from_env
 
 
 @dataclass(frozen=True)
@@ -101,6 +103,25 @@ def cli(argv: list[str] | None = None) -> int:
     backtest.add_argument("--lookahead-bars", type=int, default=20)
     backtest.add_argument("--report-file", default="data/backtest_report.json")
 
+    approve_loop = subparsers.add_parser(
+        "approve-loop",
+        help="Run MANUAL scans and actually execute a decision when APPROVE is clicked in MT5.",
+    )
+    approve_loop.add_argument("--config-dir", default=os.getenv("ZOETRADING_CONFIG_DIR", "config"))
+    approve_loop.add_argument("--journal-db", default="data/trading.db")
+    approve_loop.add_argument("--status-file", default="data/zoetrading_status.csv")
+    approve_loop.add_argument("--command-file", default="data/zoetrading_command.csv")
+    approve_loop.add_argument("--equity", type=float, required=True)
+    approve_loop.add_argument("--candle-count", type=int, default=200)
+    approve_loop.add_argument("--approval-timeout", type=float, default=120.0, help="Seconds to wait for a click.")
+    approve_loop.add_argument("--poll-interval", type=float, default=1.0)
+    approve_loop.add_argument(
+        "--max-cycles",
+        type=int,
+        default=None,
+        help="Stop after N scan cycles instead of running forever (mainly for testing).",
+    )
+
     ui = subparsers.add_parser(
         "ui",
         help="Serve the local-only web UI (read status/decisions/backtests, launch operations).",
@@ -129,6 +150,8 @@ def cli(argv: list[str] | None = None) -> int:
             return _scan_once(args)
         if command == "backtest":
             return _backtest(args)
+        if command == "approve-loop":
+            return _approve_loop(args)
         if command == "ui":
             return _ui(args)
     except ConfigError as exc:
@@ -259,6 +282,53 @@ def _backtest(args: argparse.Namespace) -> int:
                 "report_file": str(report_path),
             },
         )
+    return 0
+
+
+def _approve_loop(args: argparse.Namespace) -> int:
+    config = load_app_config(args.config_dir)
+    client = MT5Client()
+    connect_mt5_from_env(client)
+    with JournalStore(args.journal_db) as journal:
+        runtime_engine = RuntimeEngine(config, mt5_client=client, journal=journal, status_file=args.status_file)
+        execution_engine = ExecutionEngine(client, config.settings.execution, journal=journal)
+        loop = ManualApprovalLoop(
+            runtime_engine,
+            execution_engine,
+            journal=journal,
+            command_file=args.command_file,
+            approval_timeout_seconds=args.approval_timeout,
+            poll_interval_seconds=args.poll_interval,
+        )
+        print(
+            "approve-loop started: MANUAL scans will run every "
+            f"{config.settings.market.refresh_interval_seconds}s, waiting up to {args.approval_timeout}s "
+            "per proposal for an MT5 click. Ctrl+C to stop."
+        )
+        cycles = 0
+        try:
+            while args.max_cycles is None or cycles < args.max_cycles:
+                result = loop.run_cycle(equity=args.equity, candle_count=args.candle_count)
+                print(f"cycle={cycles} scanned={result.scanned} outcome={result.outcome}")
+                if result.display_decision is not None and result.display_decision.final_action.value != "NO_TRADE":
+                    signal = result.display_decision.signal
+                    print(
+                        f"  proposal instrument={signal.instrument} action={result.display_decision.final_action.value} "
+                        f"strategy={signal.strategy} score={signal.setup_score}"
+                    )
+                if result.order_result is not None:
+                    print(f"  order status={result.order_result.status.value} message={result.order_result.message}")
+                cycles += 1
+                if loop.kill_switch:
+                    print("KILL SWITCH engaged: no further scans. Restart the process to resume.")
+                    break
+                if result.outcome == "paused":
+                    print("Paused by operator. Exiting.")
+                    break
+                if args.max_cycles is None or cycles < args.max_cycles:
+                    time.sleep(config.settings.market.refresh_interval_seconds)
+        except KeyboardInterrupt:
+            print("Interrupted by user. Exiting cleanly.")
     return 0
 
 

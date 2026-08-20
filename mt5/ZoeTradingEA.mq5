@@ -3,7 +3,7 @@
 //| Companion panel for zoeTrading V1. Logic stays in Python.         |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "0.1"
+#property version   "0.2"
 #property description "zoeTrading companion panel: status, mode, approval and kill switch."
 
 input string Zoe_StatusFile = "zoetrading_status.csv";
@@ -21,6 +21,8 @@ string last_entry = "-";
 string last_sl = "-";
 string last_tp = "-";
 string last_risk = "-";
+string last_decision_id = "-";
+string previous_decision_id = "-";
 
 int OnInit()
 {
@@ -39,6 +41,7 @@ void OnTimer()
 {
    LoadStatus();
    DrawPanel();
+   UpdateChartAnnotations();
 }
 
 void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
@@ -72,16 +75,21 @@ void LoadStatus()
       if(key == "sl") last_sl = value;
       if(key == "tp") last_tp = value;
       if(key == "risk") last_risk = value;
+      if(key == "decision_id") last_decision_id = value;
    }
    FileClose(handle);
 }
 
+// Writes the button click together with the decision_id currently shown,
+// so the Python side only ever executes a click that matches the exact
+// proposal the human was looking at (never a stale one from a prior scan).
 void WriteCommand(string command)
 {
    int handle = FileOpen(Zoe_CommandFile, FILE_WRITE | FILE_CSV | FILE_ANSI | FILE_COMMON);
    if(handle == INVALID_HANDLE)
       return;
    FileWrite(handle, "command", command);
+   FileWrite(handle, "decision_id", last_decision_id);
    FileWrite(handle, "time", TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS));
    FileClose(handle);
 }
@@ -101,6 +109,67 @@ void DrawPanel()
    DrawButton("REJECT", "REJECT", x + 88, y + 130, 80, 24, clrDimGray);
    DrawButton("PAUSE", "PAUSE", x + 176, y + 130, 70, 24, clrDarkOrange);
    DrawButton("KILL", "KILL", x + 254, y + 130, 70, 24, clrFireBrick);
+}
+
+// Draws Entry/SL/TP price lines and a BUY/SELL arrow on the chart, but only
+// when the displayed signal is for the instrument this chart is showing --
+// the same status file can carry a signal for a different symbol, and
+// drawing price lines from another instrument here would be misleading.
+void UpdateChartAnnotations()
+{
+   bool for_this_symbol = (StringFind(last_signal, _Symbol) >= 0)
+                        && (StringFind(last_signal, "NO SIGNAL") < 0)
+                        && (StringFind(last_signal, "NO_TRADE") < 0);
+
+   double entry = for_this_symbol ? StringToDoubleSafe(last_entry) : 0.0;
+   double sl = for_this_symbol ? StringToDoubleSafe(last_sl) : 0.0;
+   double tp = for_this_symbol ? StringToDoubleSafe(last_tp) : 0.0;
+
+   DrawOrRemoveLevel(PREFIX + "ENTRY", entry, clrWhite, "zoe entry");
+   DrawOrRemoveLevel(PREFIX + "SL", sl, clrFireBrick, "zoe SL");
+   DrawOrRemoveLevel(PREFIX + "TP", tp, clrSeaGreen, "zoe TP");
+
+   if(for_this_symbol && last_decision_id != previous_decision_id && last_decision_id != "-")
+   {
+      if(StringFind(last_signal, "BUY") == 0)
+         DrawSignalArrow(OBJ_ARROW_BUY, entry, clrSeaGreen);
+      else if(StringFind(last_signal, "SELL") == 0)
+         DrawSignalArrow(OBJ_ARROW_SELL, entry, clrFireBrick);
+   }
+   previous_decision_id = last_decision_id;
+}
+
+double StringToDoubleSafe(string value)
+{
+   if(value == "-" || value == "")
+      return 0.0;
+   return StringToDouble(value);
+}
+
+void DrawOrRemoveLevel(string name, double price, color line_color, string label_text)
+{
+   if(price <= 0.0)
+   {
+      if(ObjectFind(0, name) >= 0)
+         ObjectDelete(0, name);
+      return;
+   }
+   if(ObjectFind(0, name) < 0)
+      ObjectCreate(0, name, OBJ_HLINE, 0, 0, price);
+   ObjectSetDouble(0, name, OBJPROP_PRICE, price);
+   ObjectSetInteger(0, name, OBJPROP_COLOR, line_color);
+   ObjectSetInteger(0, name, OBJPROP_STYLE, STYLE_DASH);
+   ObjectSetString(0, name, OBJPROP_TEXT, label_text);
+}
+
+void DrawSignalArrow(int arrow_type, double price, color arrow_color)
+{
+   double anchor_price = price > 0.0 ? price : SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   string name = PREFIX + "ARROW_" + last_decision_id;
+   if(ObjectFind(0, name) < 0)
+      ObjectCreate(0, name, arrow_type, 0, TimeCurrent(), anchor_price);
+   ObjectSetInteger(0, name, OBJPROP_COLOR, arrow_color);
+   ObjectSetInteger(0, name, OBJPROP_WIDTH, 2);
 }
 
 void DrawLabel(string name, string text, int x, int y, int size, color text_color)
@@ -130,4 +199,3 @@ void DrawButton(string name, string text, int x, int y, int w, int h, color bg)
    ObjectSetInteger(0, object_name, OBJPROP_COLOR, clrWhite);
    ObjectSetString(0, object_name, OBJPROP_TEXT, text);
 }
-

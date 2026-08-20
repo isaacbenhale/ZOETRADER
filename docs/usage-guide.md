@@ -89,9 +89,7 @@ python -m zoetrading.main scan-once --mode MONITORING --equity 10000 --status-fi
 
 Si tu ne passes pas ce chemin (ou si tu utilises l'ancien defaut `data/zoetrading_status.csv`), le fichier existe bien cote Python mais **l'EA ne le voit jamais** -- le panneau reste bloque sur "NO SIGNAL / PAUSED" sans erreur visible. C'est le probleme le plus courant si "rien ne s'affiche dans MT5".
 
-### Limite actuelle connue : le bouton APPROVE n'execute encore rien
-
-L'EA ecrit bien une commande dans `zoetrading_command.csv` quand tu cliques APPROVE/REJECT/PAUSE/KILL, mais **aucun code Python ne lit ce fichier pour l'instant**. Le clic est donc journalise cote MT5 uniquement, sans effet cote moteur. C'est une limite connue, pas une regression : le flux complet (clic -> execution reelle de l'ordre) reste a construire avant d'utiliser MANUAL pour de vrai.
+Passe de meme `--command-file` vers ce dossier pour tout ce qui touche l'approbation (etape 9).
 
 ## 6. Healthcheck MT5
 
@@ -125,15 +123,23 @@ Telecharge l'historique reel de chaque instrument, teste les 7 strategies dessus
 
 Lance un scan unique : analyse, genere des decisions, journalise dans `data/trading.db`, mais **ne peut envoyer aucun ordre**. Le `-StatusFile` pointant vers `Common\Files` (voir etape 5) est ce qui permet au panneau MT5 de voir le resultat. Repete ce scan regulierement (manuellement ou via une tache planifiee Windows) pendant plusieurs jours/semaines pour observer les signaux avant de faire confiance au systeme.
 
-## 9. Mode MANUAL (approbation humaine)
+## 9. Mode MANUAL (approbation humaine, avec execution reelle)
 
-Une fois que MONITORING tourne proprement :
+Une fois que MONITORING tourne proprement, utilise `approve-loop` (pas `scan -Mode MANUAL`) : c'est la seule commande qui attend ton clic MT5 et envoie reellement l'ordre si tu approuves.
 
 ```powershell
-.\scripts\start-local.ps1 -Action scan -Mode MANUAL -Equity 10000 -StatusFile "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_status.csv"
+.\scripts\start-local.ps1 -Action approve-loop -Equity 10000 -StatusFile "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_status.csv" -CommandFile "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_command.csv"
 ```
 
-Le signal apparait dans le panneau EA sur MT5 (entree, SL, TP, score, regime). Tu cliques **APPROVE** ou **REJECT** directement dans MT5. **KILL** coupe immediatement toute nouvelle entree. Rappel : ce clic est journalise cote MT5 mais ne declenche pas encore d'ordre reel cote Python (voir etape 5, limite connue).
+Ce que ca fait, en boucle jusqu'a Ctrl+C :
+
+1. Lance un scan MANUAL. S'il y a une proposition de trade, le panneau MT5 l'affiche (entree, SL, TP, score, regime) avec les lignes de prix et la fleche BUY/SELL sur le graphique.
+2. Attend jusqu'a 120 secondes (`-ApprovalTimeout` pour changer) que tu cliques **APPROVE** ou **REJECT** dans MT5.
+3. **APPROVE** -> envoie reellement l'ordre via le Risk Engine deja valide, journalise le resultat. **REJECT** -> rien n'est envoye. Pas de clic -> timeout, rien n'est envoye.
+4. **KILL** -> arrete immediatement toute nouvelle proposition pour le reste de la session (relance le processus pour reprendre). **PAUSE** -> arrete proprement la boucle.
+5. Recommence apres le delai configure (`market.refresh_interval_seconds` dans `settings.yaml`).
+
+Un clic ne peut jamais s'appliquer a une proposition perimee : chaque commande porte l'identifiant exact de la decision affichee, et un identifiant different est ignore plutot qu'execute.
 
 ## 10. Interface web locale (suivi visuel)
 

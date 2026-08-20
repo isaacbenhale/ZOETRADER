@@ -22,6 +22,7 @@ Tasks implementees :
 - Task 16 : completion de la bibliotheque de strategies (Structure Continuation, Momentum Breakout, Mean Reversion, Reversal).
 - Task 17 : outil de mesure (backtest) de la bibliotheque de strategies sur historique MT5 reel.
 - Task 18 : interface web locale (React + FastAPI) pour lancer et suivre le systeme, en lecture/lancement uniquement.
+- Task 19 : boucle d'approbation MANUAL (`approve-loop`) qui execute reellement un ordre sur clic APPROVE dans MT5, et annotations Entry/SL/TP/BUY/SELL sur le graphique.
 
 Le projet contient pour l'instant un point d'entree neutre qui demarre sans connexion MT5 et sans possibilite d'envoyer un ordre. Les modules reels de donnees, analyse, risque et execution seront ajoutes progressivement via les taches dans `tasks/`.
 La couche MT5 est encapsulee et testable sans terminal installe; l'installation Windows avec le package `MetaTrader5` sera requise pour lire les donnees reelles.
