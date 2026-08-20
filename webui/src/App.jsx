@@ -3,6 +3,7 @@ import './index.css'
 import { api } from './api'
 import StatusPanel from './components/StatusPanel'
 import ActionsPanel from './components/ActionsPanel'
+import ApprovalPanel from './components/ApprovalPanel'
 import DecisionsTable from './components/DecisionsTable'
 import BacktestTable from './components/BacktestTable'
 
@@ -51,9 +52,9 @@ export default function App() {
       <header>
         <h1>zoeTrading &mdash; suivi local</h1>
         <p className="banner">
-          Interface locale (127.0.0.1), lecture et lancement uniquement. Aucune autorite d&apos;execution : aucun
-          resultat affiche ici n&apos;est une garantie de gain. L&apos;approbation MANUAL et le kill switch restent
-          dans MT5.
+          Interface locale (127.0.0.1). Aucun resultat affiche ici n&apos;est une garantie de gain, et AUTO reste
+          inaccessible depuis cette interface. L&apos;approbation MANUAL peut se faire ici ou dans MT5 &mdash; les
+          deux ecrivent dans le meme fichier de commande, aucune priorite entre les deux.
         </p>
       </header>
 
@@ -68,6 +69,7 @@ export default function App() {
             setReport(result)
           }}
         />
+        <ApprovalPanel />
         <DecisionsTable decisions={decisions} />
         <BacktestTable report={report} />
       </main>

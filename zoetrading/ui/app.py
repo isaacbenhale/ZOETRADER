@@ -1,9 +1,13 @@
 """Local-only web UI backend: launch operations and read the journal.
 
-Constraints (see PRD.md "Interface web locale"): this API never approves or
-sends an order, never touches AUTO, and never bypasses the Risk Engine. It
-only triggers the same CLI operations (bootstrap/healthcheck/scan/backtest)
-and reads what is already journaled. MT5 approval stays in the EA panel.
+Constraints (see PRD.md "Interface web locale" and its MANUAL-approval
+amendment): this API never bypasses the Risk Engine and can never activate
+AUTO. It can trigger the same CLI operations (bootstrap/healthcheck/scan/
+backtest), and -- at the user's explicit request -- can also drive MANUAL
+approval (APPROVE/REJECT/PAUSE/KILL/RESUME). The approval buttons do not
+add a new execution path: they write to the same command file the MT5 EA
+writes to, read by the same ManualApprovalLoop, with the same decision_id
+check. The MT5 panel keeps working in parallel; neither surface owns it.
 """
 
 from __future__ import annotations
@@ -20,11 +24,15 @@ from pydantic import BaseModel
 from zoetrading.backtesting import run_library_backtest
 from zoetrading.config import ConfigError, load_app_config
 from zoetrading.domain import RuntimeMode
+from zoetrading.execution import ExecutionEngine
 from zoetrading.journal import JournalStore
+from zoetrading.journal.serialization import to_jsonable
 from zoetrading.main import build_state, render_state
 from zoetrading.market import MT5Client, MT5ConnectionError, MarketDataEngine
+from zoetrading.operations import write_command_file
 from zoetrading.risk import AccountRiskState
-from zoetrading.runtime import RuntimeEngine, connect_mt5_from_env
+from zoetrading.runtime import ManualApprovalLoop, RuntimeEngine, connect_mt5_from_env
+from zoetrading.ui.approval_runner import ApprovalRunner
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -44,20 +52,32 @@ class BootstrapRequest(BaseModel):
     mode: str | None = None
 
 
+class ApprovalStartRequest(BaseModel):
+    equity: float
+    candle_count: int = 200
+
+
 def create_app(
     *,
     config_dir: str = "config",
     journal_db: str = "data/trading.db",
     status_file: str = "data/zoetrading_status.csv",
+    command_file: str = "data/zoetrading_command.csv",
     report_file: str = "data/backtest_report.json",
     mt5_client_factory: Callable[[], MT5Client] = MT5Client,
+    approval_timeout_seconds: float = 120.0,
+    approval_poll_interval_seconds: float = 1.0,
 ) -> FastAPI:
     app = FastAPI(title="zoeTrading local UI", docs_url="/api/docs", redoc_url=None)
     app.state.config_dir = config_dir
     app.state.journal_db = journal_db
     app.state.mt5_client_factory = mt5_client_factory
     app.state.status_file = Path(status_file)
+    app.state.command_file = str(command_file)
     app.state.report_file = Path(report_file)
+    app.state.approval_timeout_seconds = approval_timeout_seconds
+    app.state.approval_poll_interval_seconds = approval_poll_interval_seconds
+    app.state.approval_runner: ApprovalRunner | None = None
 
     @app.get("/api/health")
     def api_health() -> dict[str, bool]:
@@ -181,10 +201,112 @@ def create_app(
             )
         return payload
 
+    @app.post("/api/approval/start")
+    def approval_start(request: ApprovalStartRequest) -> dict[str, Any]:
+        config = _load_config(app.state.config_dir)
+
+        # Fail fast with a clear HTTP error before spawning the background
+        # thread, which cannot surface a request-shaped error itself.
+        preflight_client = app.state.mt5_client_factory()
+        try:
+            connect_mt5_from_env(preflight_client)
+        except MT5ConnectionError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+        finally:
+            preflight_client.shutdown()
+
+        if app.state.approval_runner is None:
+            app.state.approval_runner = ApprovalRunner(
+                _build_manual_loop(app),
+                refresh_interval_seconds=config.settings.market.refresh_interval_seconds,
+            )
+        started = app.state.approval_runner.start(equity=request.equity, candle_count=request.candle_count)
+        if not started:
+            raise HTTPException(status_code=409, detail="approval loop is already running")
+        return _approval_status_payload(app.state.approval_runner)
+
+    @app.post("/api/approval/stop")
+    def approval_stop() -> dict[str, Any]:
+        if app.state.approval_runner:
+            app.state.approval_runner.stop()
+        return {"stopped": True}
+
+    @app.get("/api/approval/status")
+    def approval_status() -> dict[str, Any]:
+        if app.state.approval_runner is None:
+            return {
+                "running": False,
+                "kill_switch": False,
+                "pending_decision": None,
+                "last_outcome": None,
+                "start_error": None,
+            }
+        return _approval_status_payload(app.state.approval_runner)
+
+    @app.post("/api/approval/approve")
+    def approval_approve() -> dict[str, Any]:
+        return _send_approval_command(app, "APPROVE", require_pending=True)
+
+    @app.post("/api/approval/reject")
+    def approval_reject() -> dict[str, Any]:
+        return _send_approval_command(app, "REJECT", require_pending=True)
+
+    @app.post("/api/approval/pause")
+    def approval_pause() -> dict[str, Any]:
+        return _send_approval_command(app, "PAUSE", require_pending=False)
+
+    @app.post("/api/approval/kill")
+    def approval_kill() -> dict[str, Any]:
+        return _send_approval_command(app, "KILL_SWITCH", require_pending=False)
+
+    @app.post("/api/approval/resume")
+    def approval_resume() -> dict[str, Any]:
+        return _send_approval_command(app, "RESUME", require_pending=False)
+
     if STATIC_DIR.exists():
         app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
     return app
+
+
+def _build_manual_loop(app: FastAPI) -> Callable[[], ManualApprovalLoop]:
+    def build() -> ManualApprovalLoop:
+        config = load_app_config(app.state.config_dir)
+        client = app.state.mt5_client_factory()
+        connect_mt5_from_env(client)
+        journal = JournalStore(app.state.journal_db)
+        runtime_engine = RuntimeEngine(config, mt5_client=client, journal=journal, status_file=app.state.status_file)
+        execution_engine = ExecutionEngine(client, config.settings.execution, journal=journal)
+        return ManualApprovalLoop(
+            runtime_engine,
+            execution_engine,
+            journal=journal,
+            command_file=app.state.command_file,
+            approval_timeout_seconds=app.state.approval_timeout_seconds,
+            poll_interval_seconds=app.state.approval_poll_interval_seconds,
+        )
+
+    return build
+
+
+def _approval_status_payload(runner: ApprovalRunner) -> dict[str, Any]:
+    status = runner.status()
+    return {
+        "running": status.running,
+        "kill_switch": status.kill_switch,
+        "pending_decision": to_jsonable(status.pending_decision) if status.pending_decision else None,
+        "last_outcome": status.last_outcome,
+        "start_error": status.start_error,
+    }
+
+
+def _send_approval_command(app: FastAPI, command: str, *, require_pending: bool) -> dict[str, Any]:
+    runner = app.state.approval_runner
+    pending = runner.loop.pending_decision if runner and runner.loop else None
+    if require_pending and pending is None:
+        raise HTTPException(status_code=409, detail="no pending decision to respond to")
+    write_command_file(app.state.command_file, command=command, decision_id=pending.decision_id if pending else None)
+    return {"sent": command}
 
 
 def _load_config(config_dir: str):

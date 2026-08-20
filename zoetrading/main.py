@@ -306,6 +306,7 @@ def _approve_loop(args: argparse.Namespace) -> int:
             "per proposal for an MT5 click. Ctrl+C to stop."
         )
         cycles = 0
+        was_killed = False
         try:
             while args.max_cycles is None or cycles < args.max_cycles:
                 result = loop.run_cycle(equity=args.equity, candle_count=args.candle_count)
@@ -319,9 +320,11 @@ def _approve_loop(args: argparse.Namespace) -> int:
                 if result.order_result is not None:
                     print(f"  order status={result.order_result.status.value} message={result.order_result.message}")
                 cycles += 1
-                if loop.kill_switch:
-                    print("KILL SWITCH engaged: no further scans. Restart the process to resume.")
-                    break
+                if loop.kill_switch and not was_killed:
+                    print("KILL SWITCH engaged: no further scans until RESUME is clicked in MT5 or the web UI.")
+                elif not loop.kill_switch and was_killed:
+                    print("RESUME received: scanning again.")
+                was_killed = loop.kill_switch
                 if result.outcome == "paused":
                     print("Paused by operator. Exiting.")
                     break

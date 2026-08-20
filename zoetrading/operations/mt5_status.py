@@ -86,3 +86,17 @@ def consume_command_file(path: str | Path) -> None:
     if file_path.exists():
         file_path.unlink()
 
+
+def write_command_file(path: str | Path, *, command: str, decision_id: str | None) -> None:
+    """Write a command in the same format the MT5 EA uses.
+
+    Lets any other approval surface (the local web UI) feed the exact same
+    command file the EA writes to, so both are read by the same
+    ManualApprovalLoop with the same decision_id check -- no separate
+    execution path is introduced.
+    """
+
+    file_path = Path(path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text(f"command,{command}\ndecision_id,{decision_id or '-'}\n", encoding="ascii")
+

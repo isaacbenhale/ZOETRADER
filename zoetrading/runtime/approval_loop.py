@@ -7,12 +7,17 @@ turns an APPROVE click into a real `ExecutionEngine.execute()` call.
 
 Safety properties this relies on:
 - Any command left over from a previous cycle is read once at the start of
-  the next cycle: KILL_SWITCH/PAUSE are applied immediately (they are not
-  tied to a specific decision), APPROVE/REJECT found here are stale by
-  definition (no proposal was being awaited) and are logged, not executed.
+  the next cycle: KILL_SWITCH/RESUME/PAUSE are applied immediately (they
+  are not tied to a specific decision), APPROVE/REJECT found here are
+  stale by definition (no proposal was being awaited) and are logged, not
+  executed.
 - The EA echoes back the decision_id it was showing when clicked; a click
   that does not match the decision currently being waited on is ignored
   rather than executed (see `_await_approval`).
+- KILL_SWITCH freezes scanning but does not stop the loop: run_cycle keeps
+  returning immediately (no MT5 calls) until a RESUME command is seen. Only
+  PAUSE actually ends the loop -- the caller (approve-loop / ApprovalRunner)
+  is expected to stop calling run_cycle once it sees outcome == "paused".
 - AUTO is out of scope here on purpose: it stays gated behind
   AutoValidationGate and is never reachable from this loop.
 """
@@ -68,6 +73,9 @@ class ManualApprovalLoop:
             if leftover.command == "KILL_SWITCH":
                 self.kill_switch = True
                 self._log_event("kill_switch_engaged", None)
+            elif leftover.command == "RESUME":
+                self.kill_switch = False
+                self._log_event("kill_switch_resumed", None)
             elif leftover.command == "PAUSE":
                 self._log_event("manual_paused", None)
                 return ApprovalCycleResult(scanned=0, display_decision=None, outcome="paused")
@@ -133,6 +141,10 @@ class ManualApprovalLoop:
             self.kill_switch = True
             self._log_event("kill_switch_engaged", decision)
             return "kill_switch", None
+        if command == "RESUME":
+            self.kill_switch = False
+            self._log_event("kill_switch_resumed", decision)
+            return "resumed", None
         if command == "PAUSE":
             self._log_event("manual_paused", decision)
             return "paused", None

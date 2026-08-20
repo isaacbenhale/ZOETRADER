@@ -125,26 +125,26 @@ Lance un scan unique : analyse, genere des decisions, journalise dans `data/trad
 
 ## 9. Mode MANUAL (approbation humaine, avec execution reelle)
 
-Une fois que MONITORING tourne proprement, utilise `approve-loop` (pas `scan -Mode MANUAL`) : c'est la seule commande qui attend ton clic MT5 et envoie reellement l'ordre si tu approuves.
+Une fois que MONITORING tourne proprement, il faut faire tourner la boucle d'approbation -- via la CLI (`approve-loop`) ou via le bouton "Demarrer la boucle" de l'interface web (etape 10). **`scan -Mode MANUAL` ne suffit pas** : c'est un scan unique qui n'attend jamais de clic et n'envoie jamais d'ordre.
 
 ```powershell
 .\scripts\start-local.ps1 -Action approve-loop -Equity 10000 -StatusFile "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_status.csv" -CommandFile "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_command.csv"
 ```
 
-Ce que ca fait, en boucle jusqu'a Ctrl+C :
+Ce que ca fait, en boucle jusqu'a Ctrl+C (ou jusqu'a PAUSE) :
 
-1. Lance un scan MANUAL. S'il y a une proposition de trade, le panneau MT5 l'affiche (entree, SL, TP, score, regime) avec les lignes de prix et la fleche BUY/SELL sur le graphique.
-2. Attend jusqu'a 120 secondes (`-ApprovalTimeout` pour changer) que tu cliques **APPROVE** ou **REJECT** dans MT5.
+1. Lance un scan MANUAL. S'il y a une proposition de trade, le panneau MT5 l'affiche (entree, SL, TP, score, regime) avec les lignes de prix et la fleche BUY/SELL sur le graphique -- et l'interface web l'affiche aussi, si elle tourne (etape 10).
+2. Attend jusqu'a 120 secondes (`-ApprovalTimeout` pour changer) que tu cliques **APPROVE** ou **REJECT**, dans MT5 **ou** dans le navigateur -- les deux ecrivent dans le meme fichier de commande, aucune des deux interfaces n'a priorite.
 3. **APPROVE** -> envoie reellement l'ordre via le Risk Engine deja valide, journalise le resultat. **REJECT** -> rien n'est envoye. Pas de clic -> timeout, rien n'est envoye.
-4. **KILL** -> arrete immediatement toute nouvelle proposition pour le reste de la session (relance le processus pour reprendre). **PAUSE** -> arrete proprement la boucle.
+4. **KILL** -> gele immediatement toute nouvelle proposition (le processus continue de tourner, mais n'analyse plus rien). **RESUME** -> reprend l'analyse normalement, sans avoir besoin de relancer quoi que ce soit. **PAUSE** -> arrete proprement la boucle (il faut alors la relancer pour reprendre).
 5. Recommence apres le delai configure (`market.refresh_interval_seconds` dans `settings.yaml`).
 
 Un clic ne peut jamais s'appliquer a une proposition perimee : chaque commande porte l'identifiant exact de la decision affichee, et un identifiant different est ignore plutot qu'execute.
 
-## 10. Interface web locale (suivi visuel)
+## 10. Interface web locale (suivi visuel + approbation)
 
 ```powershell
-python -m zoetrading.main ui --status-file "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_status.csv"
+python -m zoetrading.main ui --status-file "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_status.csv" --command-file "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_command.csv"
 ```
 
 ou via le script :
@@ -152,6 +152,8 @@ ou via le script :
 ```powershell
 .\scripts\start-local.ps1 -Action ui -StatusFile "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_status.csv"
 ```
+
+Le panneau "Approbation MANUAL" de l'interface propose "Demarrer la boucle" (equivalent du bouton dans MT5) puis APPROVE/REJECT/PAUSE/KILL/RESUME, avec le detail de la proposition en attente affiche en direct. C'est la meme boucle, le meme fichier de commande, la meme verification stricte du `decision_id` -- juste une deuxieme facon d'appuyer sur les memes boutons. AUTO reste inaccessible depuis cette interface dans tous les cas.
 
 Ouvre `http://127.0.0.1:8765` dans le navigateur. Le serveur n'ecoute que sur `127.0.0.1` par defaut, jamais expose reseau. Tu y trouves :
 

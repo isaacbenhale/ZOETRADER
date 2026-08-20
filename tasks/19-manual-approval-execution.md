@@ -18,7 +18,7 @@ L'utilisateur a explicitement demande d'envoyer des ordres et d'activer AUTO dep
   - `APPROVE` avec `decision_id` correspondant -> appelle `ExecutionEngine.execute()` (seul point d'envoi d'ordre reel).
   - `REJECT` -> journalise, aucun ordre.
   - `decision_id` different -> clic ignore et journalise comme `stale_command_ignored`, la boucle continue d'attendre.
-  - `KILL_SWITCH` -> bloque toute nouvelle proposition pour le reste de la session (redemarrage requis pour reprendre).
+  - `KILL_SWITCH` -> bloque toute nouvelle proposition (gele la boucle sans l'arreter). Voir task 20 pour `RESUME`.
   - `PAUSE` -> arrete proprement la boucle.
   - Timeout -> aucun ordre, journalise `approval_timeout`.
   - Le fichier de commande est purge au debut de chaque cycle et apres traitement, pour qu'un clic ne soit jamais rejoue sur une decision differente.
@@ -28,7 +28,8 @@ L'utilisateur a explicitement demande d'envoyer des ordres et d'activer AUTO dep
 ## Ce qui reste hors scope, volontairement
 
 - `AUTO` reste inatteignable depuis cette boucle : elle appelle toujours `RuntimeMode.MANUAL`, jamais `AUTO`.
-- L'interface web ne declenche pas `approve-loop` et ne peut toujours pas approuver un ordre : l'approbation reste dans MT5, cote Python execute uniquement ce que ce fichier de commande valide.
+
+Mise a jour (task 20) : a la demande explicite de l'utilisateur, l'interface web peut desormais aussi declencher APPROVE/REJECT/PAUSE/KILL/RESUME -- voir `tasks/20-web-manual-approval-and-resume.md`. Le paragraphe ci-dessus ("l'interface web ne peut toujours pas approuver un ordre") ne decrit plus le comportement actuel.
 
 ## Criteres d'acceptation
 

@@ -31,8 +31,8 @@ export default function ActionsPanel({ onScanned, onBacktested }) {
     <section className="panel">
       <h2>Lancer</h2>
       <p className="hint">
-        Ces boutons declenchent les memes operations que la CLI. Aucune ne peut approuver un ordre ni activer AUTO
-        &mdash; ca reste dans MT5.
+        Ces boutons declenchent les memes operations que la CLI. Aucun n&apos;envoie d&apos;ordre ni n&apos;active
+        AUTO &mdash; pour approuver un signal MANUAL, utilise le panneau &quot;Approbation MANUAL&quot; plus bas.
       </p>
 
       <div className="actions-row">

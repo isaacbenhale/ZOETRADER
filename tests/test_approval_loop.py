@@ -158,7 +158,7 @@ class ApprovalLoopTests(unittest.TestCase):
         self.assertEqual(result.outcome, "timeout")
         self.assertIsNone(result.order_result)
 
-    def test_kill_switch_stops_future_cycles(self) -> None:
+    def test_kill_switch_freezes_future_cycles(self) -> None:
         with JournalStore(self.journal_db) as journal:
             def sleep_and_kill(_seconds: float) -> None:
                 loop.pending_decision and write_command(
@@ -173,6 +173,20 @@ class ApprovalLoopTests(unittest.TestCase):
         self.assertTrue(loop.kill_switch)
         self.assertEqual(second.outcome, "kill_switch")
         self.assertEqual(second.scanned, 0)
+
+    def test_resume_after_kill_scans_again(self) -> None:
+        write_command(self.command_file, "KILL_SWITCH", "irrelevant")
+        with JournalStore(self.journal_db) as journal:
+            loop = self._build(journal)
+            killed = loop.run_cycle(equity=10_000, candle_count=22)
+            self.assertEqual(killed.outcome, "kill_switch")
+            self.assertTrue(loop.kill_switch)
+
+            write_command(self.command_file, "RESUME", "irrelevant")
+            resumed = loop.run_cycle(equity=10_000, candle_count=22)
+
+        self.assertFalse(loop.kill_switch)
+        self.assertGreater(resumed.scanned, 0)
 
     def test_kill_switch_clicked_between_cycles_is_still_applied(self) -> None:
         write_command(self.command_file, "KILL_SWITCH", "irrelevant")

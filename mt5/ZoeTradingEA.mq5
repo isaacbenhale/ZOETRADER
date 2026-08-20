@@ -3,7 +3,7 @@
 //| Companion panel for zoeTrading V1. Logic stays in Python.         |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "0.2"
+#property version   "0.3"
 #property description "zoeTrading companion panel: status, mode, approval and kill switch."
 
 input string Zoe_StatusFile = "zoetrading_status.csv";
@@ -53,6 +53,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
    if(sparam == PREFIX + "REJECT") WriteCommand("REJECT");
    if(sparam == PREFIX + "PAUSE") WriteCommand("PAUSE");
    if(sparam == PREFIX + "KILL") WriteCommand("KILL_SWITCH");
+   if(sparam == PREFIX + "RESUME") WriteCommand("RESUME");
 }
 
 void LoadStatus()
@@ -109,6 +110,7 @@ void DrawPanel()
    DrawButton("REJECT", "REJECT", x + 88, y + 130, 80, 24, clrDimGray);
    DrawButton("PAUSE", "PAUSE", x + 176, y + 130, 70, 24, clrDarkOrange);
    DrawButton("KILL", "KILL", x + 254, y + 130, 70, 24, clrFireBrick);
+   DrawButton("RESUME", "RESUME", x, y + 158, 80, 24, clrDodgerBlue);
 }
 
 // Draws Entry/SL/TP price lines and a BUY/SELL arrow on the chart, but only
