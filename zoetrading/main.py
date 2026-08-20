@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
+from zoetrading.backtesting import run_library_backtest
 from zoetrading.config import ConfigError, load_app_config
 from zoetrading.config.models import AppConfig
 from zoetrading.domain import RuntimeMode
 from zoetrading.journal import JournalStore
-from zoetrading.market import MT5Client, MT5ConnectionError
+from zoetrading.market import MT5Client, MT5ConnectionError, MarketDataEngine
 from zoetrading.risk import AccountRiskState
 from zoetrading.runtime import RuntimeEngine, connect_mt5_from_env
 
@@ -88,6 +91,16 @@ def cli(argv: list[str] | None = None) -> int:
     scan.add_argument("--status-file", default="data/zoetrading_status.csv")
     scan.add_argument("--candle-count", type=int, default=200)
 
+    backtest = subparsers.add_parser(
+        "backtest",
+        help="Measure win rate, expectancy and profit factor of the strategy library against MT5 history.",
+    )
+    backtest.add_argument("--config-dir", default=os.getenv("ZOETRADING_CONFIG_DIR", "config"))
+    backtest.add_argument("--journal-db", default="data/trading.db")
+    backtest.add_argument("--candle-count", type=int, default=500)
+    backtest.add_argument("--lookahead-bars", type=int, default=20)
+    backtest.add_argument("--report-file", default="data/backtest_report.json")
+
     args = parser.parse_args(argv)
     command = args.command or "bootstrap"
 
@@ -103,6 +116,8 @@ def cli(argv: list[str] | None = None) -> int:
             return _healthcheck(args.config_dir, args.journal_db)
         if command == "scan-once":
             return _scan_once(args)
+        if command == "backtest":
+            return _backtest(args)
     except ConfigError as exc:
         parser.exit(status=2, message=f"Configuration error: {exc}\n")
     parser.exit(status=2, message=f"Unknown command: {command}\n")
@@ -158,6 +173,80 @@ def _scan_once(args: argparse.Namespace) -> int:
     for error in result.errors:
         print(f"error {error}")
     return 0 if result.decisions else 1
+
+
+def _backtest(args: argparse.Namespace) -> int:
+    config = load_app_config(args.config_dir)
+    client = MT5Client()
+    connect_mt5_from_env(client)
+    market = MarketDataEngine(client)
+    report = run_library_backtest(
+        config,
+        market,
+        candle_count=args.candle_count,
+        lookahead_bars=args.lookahead_bars,
+    )
+    ranked = report.ranked_by_expectancy
+
+    print(f"backtest_complete=true combinations={len(ranked)} skipped={len(report.skipped)}")
+    print(
+        f"{'instrument':<22}{'strategy':<22}{'timeframe':<6}"
+        f"{'trades':>7}{'win_rate':>10}{'expectancy':>12}{'profit_factor':>15}{'max_dd':>9}"
+    )
+    for result in ranked:
+        metrics = result.metrics
+        print(
+            f"{result.instrument:<22}{result.strategy:<22}{result.timeframe:<6}"
+            f"{metrics.trades:>7}{metrics.win_rate:>10.2%}{metrics.expectancy:>12.3f}"
+            f"{metrics.profit_factor:>15.2f}{metrics.max_drawdown:>9.2f}"
+        )
+    for skipped in report.skipped:
+        print(f"skipped {skipped}")
+
+    report_path = Path(args.report_file)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        json.dumps(
+            {
+                "candle_count": args.candle_count,
+                "lookahead_bars": args.lookahead_bars,
+                "skipped": list(report.skipped),
+                "results": [
+                    {
+                        "instrument": result.instrument,
+                        "strategy": result.strategy,
+                        "timeframe": result.timeframe,
+                        "trades": result.metrics.trades,
+                        "win_rate": result.metrics.win_rate,
+                        "expectancy": result.metrics.expectancy,
+                        "profit_factor": result.metrics.profit_factor,
+                        "max_drawdown": result.metrics.max_drawdown,
+                        "average_win": result.metrics.average_win,
+                        "average_loss": result.metrics.average_loss,
+                        "mfe": result.metrics.mfe,
+                        "mae": result.metrics.mae,
+                        "profitable": result.metrics.profitable,
+                    }
+                    for result in ranked
+                ],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print(f"report_file={report_path}")
+
+    with JournalStore(args.journal_db) as journal:
+        journal.log_event(
+            "backtest",
+            entity_id="strategy_library",
+            payload={
+                "combinations": len(ranked),
+                "skipped": len(report.skipped),
+                "report_file": str(report_path),
+            },
+        )
+    return 0
 
 
 if __name__ == "__main__":

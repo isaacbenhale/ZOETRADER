@@ -1,11 +1,14 @@
 param(
-    [ValidateSet("bootstrap", "healthcheck", "scan")]
+    [ValidateSet("bootstrap", "healthcheck", "scan", "backtest")]
     [string]$Action = "scan",
     [string]$Mode = "MONITORING",
     [string]$ConfigDir = "config",
     [double]$Equity = 10000,
     [string]$JournalDb = "data/trading.db",
-    [string]$StatusFile = "data/zoetrading_status.csv"
+    [string]$StatusFile = "data/zoetrading_status.csv",
+    [int]$CandleCount = 500,
+    [int]$LookaheadBars = 20,
+    [string]$ReportFile = "data/backtest_report.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,6 +19,9 @@ if ($Action -eq "bootstrap") {
 }
 elseif ($Action -eq "healthcheck") {
     python -m zoetrading.main healthcheck --config-dir $ConfigDir --journal-db $JournalDb
+}
+elseif ($Action -eq "backtest") {
+    python -m zoetrading.main backtest --config-dir $ConfigDir --journal-db $JournalDb --candle-count $CandleCount --lookahead-bars $LookaheadBars --report-file $ReportFile
 }
 else {
     python -m zoetrading.main scan-once --mode $Mode --equity $Equity --config-dir $ConfigDir --journal-db $JournalDb --status-file $StatusFile

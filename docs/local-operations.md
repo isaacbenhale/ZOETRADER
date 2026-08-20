@@ -15,8 +15,15 @@ La V1 fonctionne d'abord sur laptop Windows, sans VPS obligatoire.
 
 Lorsque le moteur Python ou le laptop est arrete, aucune nouvelle logique locale ne tourne. Les SL/TP deja transmis au broker peuvent rester actifs cote broker, mais trailing, sorties dynamiques et nouvelles entrees cessent.
 
+## Mesure de performance (avant toute decision d'exploitation)
+
+`scripts/start-local.ps1 -Action backtest` (ou `python -m zoetrading.main backtest`) execute chaque strategie de la bibliotheque sur l'historique MT5 reel de chaque instrument configure et calcule win rate, expectancy, profit factor, drawdown, MFE/MAE. Le rapport est ecrit dans `data/backtest_report.json` et journalise.
+
+Ces chiffres ne sont **jamais** une garantie de resultat futur : ce sont des mesures historiques utilisees pour decider objectivement quelles combinaisons instrument/strategie meritent de continuer vers demo puis shadow mode. Une strategie avec `expectancy <= 0` ou `profit_factor <= 1` ne doit pas progresser.
+
 ## Phases
 
+- Backtest : mesure historique, aucune exposition, sert a filtrer les strategies.
 - Demo : aucune exposition reelle.
 - Shadow mode : decisions temps reel sans execution.
 - MANUAL : approbation humaine requise.

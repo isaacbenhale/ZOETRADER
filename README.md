@@ -18,6 +18,7 @@ Tasks implementees :
 - Tasks 08-12 : Risk Engine, Decision Engine, Execution Engine, Position Monitor et EA MT5 compagnon.
 - Tasks 13-15 : backtesting/validation, exploitation locale Windows, gate AUTO et readiness VPS.
 - Task 16 : completion de la bibliotheque de strategies (Structure Continuation, Momentum Breakout, Mean Reversion, Reversal).
+- Task 17 : outil de mesure (backtest) de la bibliotheque de strategies sur historique MT5 reel.
 
 Le projet contient pour l'instant un point d'entree neutre qui demarre sans connexion MT5 et sans possibilite d'envoyer un ordre. Les modules reels de donnees, analyse, risque et execution seront ajoutes progressivement via les taches dans `tasks/`.
 La couche MT5 est encapsulee et testable sans terminal installe; l'installation Windows avec le package `MetaTrader5` sera requise pour lire les donnees reelles.
@@ -55,9 +56,12 @@ Ou via le script Windows :
 ```powershell
 .\scripts\start-local.ps1 -Action healthcheck
 .\scripts\start-local.ps1 -Action scan -Mode MONITORING -Equity 10000
+.\scripts\start-local.ps1 -Action backtest
 ```
 
 Le scan lit les instruments configures, analyse les timeframes, produit des decisions, journalise dans `data/trading.db` et ecrit `data/zoetrading_status.csv` pour l'EA compagnon. `scan-once` n'autorise pas `AUTO`.
+
+Le backtest mesure win rate, expectancy, profit factor et drawdown de chaque strategie sur l'historique MT5 reel de chaque instrument, et ecrit `data/backtest_report.json`. C'est une mesure, pas une garantie : aucun resultat passe ne predit un resultat futur.
 
 ## Tests
 
