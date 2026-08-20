@@ -21,7 +21,7 @@ Produire un systeme qui ne cherche pas a "deviner" le marche, mais a executer un
 
 ## Public cible
 
-Le premier utilisateur est le proprietaire du projet, avec un usage local et controle. Le systeme doit rester comprehensible, inspectable et exploitable sans dashboard web dans la V1. MT5 est l'interface visuelle principale.
+Le premier utilisateur est le proprietaire du projet, avec un usage local et controle. Le systeme doit rester comprehensible et inspectable. MT5 reste l'interface d'exploitation de reference (approbation MANUAL, kill switch) ; une interface web strictement locale (127.0.0.1, lecture et lancement uniquement, sans autorite d'execution) complete le suivi.
 
 ## Differenciation
 
@@ -37,7 +37,7 @@ zoeTrading se distingue par la combinaison de quatre exigences :
 - Ce n'est pas une promesse de profit.
 - Ce n'est pas un robot martingale.
 - Ce n'est pas un systeme opaque pilote par IA.
-- Ce n'est pas un dashboard web.
+- Ce n'est pas un dashboard expose au reseau ou avec autorite d'execution.
 - Ce n'est pas une architecture cloud complexe.
 
 ## Etoile polaire

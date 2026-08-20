@@ -20,11 +20,20 @@ zoeTrading V1 est un systeme local de trading algorithmique pour MetaTrader 5. I
 ## Non-objectifs V1
 
 - Garantir un profit ou une absence de pertes.
-- Construire un dashboard web.
 - Migrer immediatement vers AWS ou une architecture cloud.
 - Dependendre d'un LLM distant pour les calculs critiques.
 - Utiliser martingale ou recovery automatique.
 - Activer AUTO reel sans validation formelle.
+- Exposer une interface web sur le reseau ou lui donner une autorite d'execution.
+
+## Interface web locale (decision de portee, 2026-08-20)
+
+Le non-objectif initial "construire un dashboard web" est leve a la demande explicite de l'utilisateur. Une interface web est ajoutee a la V1, sous conditions non negociables :
+
+- Strictement locale : le serveur ecoute par defaut sur `127.0.0.1`, jamais expose sur le reseau sans action explicite et documentee.
+- Lecture et lancement uniquement : elle peut afficher l'etat, les decisions journalisees et les rapports de backtest, et declencher `bootstrap` / `healthcheck` / `scan-once` / `backtest`.
+- Aucune autorite d'execution : elle ne peut ni approuver un ordre, ni contourner le Risk Engine, ni activer AUTO. L'approbation MANUAL reste dans MT5 (boutons APPROVE/REJECT/KILL de l'EA compagnon), qui demeure l'interface d'exploitation de reference.
+- Le document de conception (`Document/zoeTrading_Document_Final_Conception.docx`, section 2) liste encore le dashboard web comme non inclus en V1 : cette section est desormais obsolete et remplacee par la presente decision. Le fichier .docx n'a pas ete modifie automatiquement pour eviter de corrompre sa mise en forme (tableaux) lors d'une conversion automatisee ; une mise a jour manuelle du document source est recommandee si besoin d'un support figé a jour.
 
 ## Utilisateurs et modes
 
