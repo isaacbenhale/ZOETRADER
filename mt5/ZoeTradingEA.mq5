@@ -164,7 +164,7 @@ void DrawOrRemoveLevel(string name, double price, color line_color, string label
    ObjectSetString(0, name, OBJPROP_TEXT, label_text);
 }
 
-void DrawSignalArrow(int arrow_type, double price, color arrow_color)
+void DrawSignalArrow(ENUM_OBJECT arrow_type, double price, color arrow_color)
 {
    double anchor_price = price > 0.0 ? price : SymbolInfoDouble(_Symbol, SYMBOL_BID);
    string name = PREFIX + "ARROW_" + last_decision_id;
