@@ -27,6 +27,7 @@ Workflow Git : travailler directement sur `main` et pousser sur `main` apres cha
 19. `19-manual-approval-execution.md`
 20. `20-web-manual-approval-and-resume.md`
 21. `21-auto-mode-execution.md`
+22. `22-range-reversal-tp-fix.md`
 
 ## Gates
 

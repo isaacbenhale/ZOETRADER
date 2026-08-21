@@ -1,5 +1,5 @@
-from datetime import UTC, datetime, timedelta
 import unittest
+from datetime import UTC, datetime, timedelta
 
 from zoetrading.analysis import RegimeAssessment, StructureTrend, VolatilityState
 from zoetrading.domain import Candle, InstrumentFamily, MarketRegime, RejectionReason, TradeAction
@@ -132,6 +132,20 @@ RANGE_CANDLES = make_candles(
     ]
 )
 
+# A support forms right at entry, but the only confirmed resistance sits far
+# below entry (an earlier, lower-level range) -- there is no confirmed edge
+# above entry to target. Regression fixture for a bug where the strategy
+# capped the BUY take-profit at that stale resistance, producing a take
+# profit below the stop loss (see tasks/21-auto-mode-execution.md context).
+RANGE_NO_TARGET_ABOVE_ENTRY_CANDLES = make_candles(
+    [
+        10.0, 10.0, 10.0,
+        10.0, 10.3, 10.0, 10.3, 10.0, 10.05,
+        12.0,
+        14.3, 14.0, 14.6, 14.0, 14.05,
+    ]
+)
+
 STRUCTURE_CONTINUATION_CANDLES = make_candles(
     [10, 10.5, 10.2, 10.8, 10.4, 11.2, 10.9, 11.8, 11.4, 12.5, 12.1, 13.2, 12.8, 14.0, 13.6]
 )
@@ -198,6 +212,16 @@ class StrategyTests(unittest.TestCase):
         self.assertEqual(signal.action, TradeAction.BUY)
         self.assertEqual(signal.strategy, "range_reversal")
         self.assertIn("range support confirmed", signal.reasons)
+        self.assertLess(signal.proposed_sl, signal.entry)
+        self.assertGreater(signal.proposed_tp, signal.entry)
+
+    def test_range_reversal_refuses_a_target_below_entry(self) -> None:
+        signal = RangeReversalStrategy().evaluate(
+            context(MarketRegime.RANGING, RANGE_NO_TARGET_ABOVE_ENTRY_CANDLES, structure=StructureTrend.RANGE)
+        )
+
+        self.assertEqual(signal.action, TradeAction.NO_TRADE)
+        self.assertIn(RejectionReason.STRATEGY_BLOCKED, signal.blockers)
 
     def test_structure_continuation_returns_trade_after_break_of_structure(self) -> None:
         signal = StructureContinuationStrategy().evaluate(
