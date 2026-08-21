@@ -3,7 +3,7 @@
 //| Companion panel for zoeTrading V1. Logic stays in Python.         |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "0.3"
+#property version   "0.4"
 #property description "zoeTrading companion panel: status, mode, approval and kill switch."
 
 input string Zoe_StatusFile = "zoetrading_status.csv";
@@ -95,13 +95,35 @@ void WriteCommand(string command)
    FileClose(handle);
 }
 
+// The status file always carries the single best decision across every
+// scanned instrument, not just this chart's symbol -- an operator glancing
+// at Entry/SL/TP on the wrong chart is a real, easy mistake. These two
+// helpers are the single source of truth for whether the currently shown
+// signal actually belongs to this chart, used by both the panel (to warn)
+// and the chart annotations (to decide whether to draw at all).
+bool HasTradeSignal()
+{
+   return (StringFind(last_signal, "NO SIGNAL") < 0) && (StringFind(last_signal, "NO_TRADE") < 0);
+}
+
+bool SignalMatchesChart()
+{
+   return HasTradeSignal() && (StringFind(last_signal, _Symbol) >= 0);
+}
+
 void DrawPanel()
 {
    int x = 12;
    int y = 18;
+   bool other_chart = HasTradeSignal() && !SignalMatchesChart();
+   string signal_text = "Signal: " + last_signal + " | Strategy: " + last_strategy;
+   if(other_chart)
+      signal_text += "  <<< AUTRE GRAPHIQUE (" + _Symbol + ")";
+   color signal_color = other_chart ? clrOrange : clrLightGray;
+
    DrawLabel("TITLE", "zoeTrading", x, y, 13, clrWhite);
    DrawLabel("STATUS", "Status: " + system_status + " | Mode: " + mode, x, y + 22, 9, clrLightGray);
-   DrawLabel("SIGNAL", "Signal: " + last_signal + " | Strategy: " + last_strategy, x, y + 42, 9, clrLightGray);
+   DrawLabel("SIGNAL", signal_text, x, y + 42, 9, signal_color);
    DrawLabel("REGIME", "Regime: " + last_regime + " | Score: " + last_score, x, y + 62, 9, clrLightGray);
    DrawLabel("LEVELS", "Entry: " + last_entry + " | SL: " + last_sl + " | TP: " + last_tp, x, y + 82, 9, clrLightGray);
    DrawLabel("RISK", "Risk: " + last_risk, x, y + 102, 9, clrLightGray);
@@ -119,9 +141,7 @@ void DrawPanel()
 // drawing price lines from another instrument here would be misleading.
 void UpdateChartAnnotations()
 {
-   bool for_this_symbol = (StringFind(last_signal, _Symbol) >= 0)
-                        && (StringFind(last_signal, "NO SIGNAL") < 0)
-                        && (StringFind(last_signal, "NO_TRADE") < 0);
+   bool for_this_symbol = SignalMatchesChart();
 
    double entry = for_this_symbol ? StringToDoubleSafe(last_entry) : 0.0;
    double sl = for_this_symbol ? StringToDoubleSafe(last_sl) : 0.0;

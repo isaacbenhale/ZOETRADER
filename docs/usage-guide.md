@@ -73,6 +73,8 @@ Doit afficher `mode=MONITORING`, `orders_enabled=false`, `config_loaded=true`. S
 4. Dans MT5, glisse `ZoeTradingEA` sur un graphique (n'importe quel symbole surveille). Le panneau affiche l'etat, le dernier signal, et les boutons **APPROVE / REJECT / KILL**.
 5. **Verifie que le bouton "Algo Trading" (ou "AutoTrading") est active dans MT5** -- sans ca, l'EA ne s'execute pas du tout (pas de timer, pas de lecture de fichier).
 
+Le panneau affiche toujours la meilleure proposition parmi **tous** les instruments surveilles, pas seulement celui du graphique ouvert (plusieurs symboles sont scannes en parallele, voir `config/instruments.yaml`). Si le signal affiche concerne un autre instrument que celui du graphique courant, la ligne "Signal:" passe en **orange** avec la mention `<<< AUTRE GRAPHIQUE (SYMBOLE)` -- les lignes Entry/SL/TP et la fleche BUY/SELL ne se dessinent de toute facon jamais sur le mauvais graphique. Ouvre le graphique du symbole indique pour voir les niveaux de prix.
+
 ### Important : ou se trouve le fichier de statut
 
 L'EA lit/ecrit via le dossier **partage** MT5 (`FILE_COMMON`), commun a tous les terminaux installes sur la machine :

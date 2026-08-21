@@ -28,6 +28,7 @@ Workflow Git : travailler directement sur `main` et pousser sur `main` apres cha
 20. `20-web-manual-approval-and-resume.md`
 21. `21-auto-mode-execution.md`
 22. `22-range-reversal-tp-fix.md`
+23. `23-ea-panel-instrument-mismatch-warning.md`
 
 ## Gates
 
