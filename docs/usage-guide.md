@@ -89,7 +89,7 @@ C'est un chemin fixe, independant du terminal precis. Python (non sandboxe) doit
 python -m zoetrading.main scan-once --mode MONITORING --equity 10000 --status-file "$env:APPDATA\MetaQuotes\Terminal\Common\Files\zoetrading_status.csv"
 ```
 
-Si tu ne passes pas ce chemin (ou si tu utilises l'ancien defaut `data/zoetrading_status.csv`), le fichier existe bien cote Python mais **l'EA ne le voit jamais** -- le panneau reste bloque sur "NO SIGNAL / PAUSED" sans erreur visible. C'est le probleme le plus courant si "rien ne s'affiche dans MT5".
+Si tu ne passes pas ce chemin (ou si tu utilises l'ancien defaut `data/zoetrading_status.csv`), le fichier existe bien cote Python mais **l'EA ne le voit jamais**. Depuis la version 0.5 de l'EA, ce cas n'est plus silencieux : la ligne "Status:" du panneau passe en **rouge/orange** avec `AUCUNE DONNEE RECUE` (et le code d'erreur Windows/MT5 exact dans l'onglet **Experts** en bas de MT5, par exemple "erreur=5004" si le fichier est introuvable). C'est le premier reflexe si le panneau semble bloque : regarder cette ligne et l'onglet Experts avant de chercher plus loin.
 
 Passe de meme `--command-file` vers ce dossier pour tout ce qui touche l'approbation (etape 9).
 

@@ -3,7 +3,7 @@
 //| Companion panel for zoeTrading V1. Logic stays in Python.         |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "0.4"
+#property version   "0.5"
 #property description "zoeTrading companion panel: status, mode, approval and kill switch."
 
 input string Zoe_StatusFile = "zoetrading_status.csv";
@@ -23,6 +23,8 @@ string last_tp = "-";
 string last_risk = "-";
 string last_decision_id = "-";
 string previous_decision_id = "-";
+datetime g_last_read_ok = 0;
+int      g_last_open_error = 0;
 
 int OnInit()
 {
@@ -62,11 +64,34 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
       ObjectSetInteger(0, sparam, OBJPROP_STATE, false);
 }
 
+// FileOpen used to fail silently here -- the panel just stayed stuck on its
+// compile-time defaults ("Status: PAUSED | Signal: NO SIGNAL") forever, with
+// nothing anywhere (not even the Experts log) saying why. That made a path
+// or permission problem on the operator's machine indistinguishable from
+// "nothing to show yet", and impossible to diagnose remotely. Now every
+// open failure is logged once (with the real Windows/MT5 error code) and
+// every successful read is timestamped so the panel itself can show when
+// the last update actually happened.
 void LoadStatus()
 {
    int handle = FileOpen(Zoe_StatusFile, FILE_READ | FILE_CSV | FILE_ANSI | FILE_COMMON);
    if(handle == INVALID_HANDLE)
+   {
+      int err = GetLastError();
+      if(err != g_last_open_error)
+      {
+         PrintFormat(
+            "zoeTrading: FileOpen a echoue pour '%s' (FILE_COMMON), erreur=%d. "
+            "Verifie que Python ecrit bien dans %%APPDATA%%\\MetaQuotes\\Terminal\\Common\\Files\\, "
+            "que le terminal n'est pas en mode portable, et que Zoe_StatusFile est reste "
+            "a sa valeur par defaut dans les Inputs de l'EA.",
+            Zoe_StatusFile, err
+         );
+         g_last_open_error = err;
+      }
       return;
+   }
+   g_last_open_error = 0;
 
    while(!FileIsEnding(handle))
    {
@@ -85,6 +110,7 @@ void LoadStatus()
       if(key == "decision_id") last_decision_id = value;
    }
    FileClose(handle);
+   g_last_read_ok = TimeCurrent();
 }
 
 // Writes the button click together with the decision_id currently shown,
@@ -141,8 +167,35 @@ void DrawPanel()
       signal_text += "  <<< AUTRE GRAPHIQUE (" + _Symbol + ")";
    color signal_color = other_chart ? clrOrange : clrLightGray;
 
+   // Surface a broken/stale link between Python and this chart directly on
+   // the panel -- previously a failed or stopped connection looked exactly
+   // like "nothing to show yet" (Status stuck on the compile-time default
+   // "PAUSED"), which is impossible to tell apart from normal idle MONITORING
+   // at a glance. See the Experts log for the exact FileOpen error code.
+   string status_text;
+   color status_color;
+   if(g_last_read_ok == 0)
+   {
+      status_text = "Status: AUCUNE DONNEE RECUE" + (g_last_open_error != 0 ? " (erreur " + IntegerToString(g_last_open_error) + ", voir Experts)" : " (en attente...)");
+      status_color = clrOrangeRed;
+   }
+   else
+   {
+      int stale_seconds = (int)(TimeCurrent() - g_last_read_ok);
+      if(stale_seconds > 10)
+      {
+         status_text = "Status: " + system_status + " | Mode: " + mode + "  (perime depuis " + IntegerToString(stale_seconds) + "s)";
+         status_color = clrOrangeRed;
+      }
+      else
+      {
+         status_text = "Status: " + system_status + " | Mode: " + mode;
+         status_color = clrLightGray;
+      }
+   }
+
    DrawLabel("TITLE", "zoeTrading", x, y, 13, clrWhite);
-   DrawLabel("STATUS", "Status: " + system_status + " | Mode: " + mode, x, y + 22, 9, clrLightGray);
+   DrawLabel("STATUS", status_text, x, y + 22, 9, status_color);
    DrawLabel("SIGNAL", signal_text, x, y + 42, 9, signal_color);
    DrawLabel("REGIME", "Regime: " + last_regime + " | Score: " + last_score, x, y + 62, 9, clrLightGray);
    DrawLabel("LEVELS", "Entry: " + last_entry + " | SL: " + last_sl + " | TP: " + last_tp, x, y + 82, 9, clrLightGray);
