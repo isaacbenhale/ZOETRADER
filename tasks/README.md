@@ -29,6 +29,7 @@ Workflow Git : travailler directement sur `main` et pousser sur `main` apres cha
 21. `21-auto-mode-execution.md`
 22. `22-range-reversal-tp-fix.md`
 23. `23-ea-panel-instrument-mismatch-warning.md`
+24. `24-mt5-panel-reliability-fixes.md`
 
 ## Gates
 

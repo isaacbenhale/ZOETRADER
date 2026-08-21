@@ -2,10 +2,33 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
 from zoetrading.domain import Decision, SystemStatus
+
+
+def _write_atomic(path: Path, content: str) -> None:
+    """Write content so a concurrent reader never sees a partial file.
+
+    The MT5 EA polls this file on a 1s timer while Python rewrites it every
+    scan cycle; a plain write() can be observed mid-write (e.g. a "mode,"
+    line with no value yet), which desyncs the EA's key/value parsing and
+    scrambles the whole panel. Writing to a temp file in the same directory
+    then os.replace()-ing it is atomic on both POSIX and Windows.
+    """
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="ascii", newline="") as handle:
+            handle.write(content)
+        os.replace(tmp_path, path)
+    except BaseException:
+        Path(tmp_path).unlink(missing_ok=True)
+        raise
 
 
 def write_status_file(
@@ -17,7 +40,6 @@ def write_status_file(
     risk: str = "-",
 ) -> None:
     output = Path(path)
-    output.parent.mkdir(parents=True, exist_ok=True)
     rows = {
         "status": status.value,
         "mode": mode,
@@ -46,9 +68,8 @@ def write_status_file(
                 "risk": f"{decision.risk.risk_per_trade_pct:.2f}%",
             }
         )
-    with output.open("w", encoding="ascii", newline="") as handle:
-        for key, value in rows.items():
-            handle.write(f"{key},{value}\n")
+    content = "".join(f"{key},{value}\n" for key, value in rows.items())
+    _write_atomic(output, content)
 
 
 def _fmt(value: float | None) -> str:
@@ -96,7 +117,5 @@ def write_command_file(path: str | Path, *, command: str, decision_id: str | Non
     execution path is introduced.
     """
 
-    file_path = Path(path)
-    file_path.parent.mkdir(parents=True, exist_ok=True)
-    file_path.write_text(f"command,{command}\ndecision_id,{decision_id or '-'}\n", encoding="ascii")
+    _write_atomic(Path(path), f"command,{command}\ndecision_id,{decision_id or '-'}\n")
 

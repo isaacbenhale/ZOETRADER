@@ -54,6 +54,12 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
    if(sparam == PREFIX + "PAUSE") WriteCommand("PAUSE");
    if(sparam == PREFIX + "KILL") WriteCommand("KILL_SWITCH");
    if(sparam == PREFIX + "RESUME") WriteCommand("RESUME");
+
+   // OBJ_BUTTON stays visually pressed after a click until OBJPROP_STATE is
+   // reset -- without this, buttons can look stuck down and stop reliably
+   // firing CHARTEVENT_OBJECT_CLICK on a second click.
+   if(ObjectFind(0, sparam) >= 0)
+      ObjectSetInteger(0, sparam, OBJPROP_STATE, false);
 }
 
 void LoadStatus()
@@ -106,9 +112,23 @@ bool HasTradeSignal()
    return (StringFind(last_signal, "NO SIGNAL") < 0) && (StringFind(last_signal, "NO_TRADE") < 0);
 }
 
+// last_signal is always "<BUY|SELL> <instrument>" (write_status_file's
+// format); the instrument is everything after the first space, which can
+// itself contain spaces (e.g. "Volatility 75 Index"). Comparing this for
+// exact equality -- instead of a substring search across the whole
+// "<action> <instrument>" text -- avoids any risk of one symbol name
+// matching as a false positive because it happens to appear inside another.
+string SignalInstrument()
+{
+   int space_pos = StringFind(last_signal, " ");
+   if(space_pos < 0)
+      return "";
+   return StringSubstr(last_signal, space_pos + 1);
+}
+
 bool SignalMatchesChart()
 {
-   return HasTradeSignal() && (StringFind(last_signal, _Symbol) >= 0);
+   return HasTradeSignal() && (SignalInstrument() == _Symbol);
 }
 
 void DrawPanel()
@@ -187,9 +207,13 @@ void DrawOrRemoveLevel(string name, double price, color line_color, string label
 void DrawSignalArrow(ENUM_OBJECT arrow_type, double price, color arrow_color)
 {
    double anchor_price = price > 0.0 ? price : SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   // Each new decision_id got its own permanent arrow object, name and all,
+   // and nothing ever removed the previous one -- over a long-running
+   // session the chart accumulates one arrow per proposal forever. Only the
+   // current signal's arrow is meaningful, so clear old ones first.
+   ObjectsDeleteAll(0, PREFIX + "ARROW_");
    string name = PREFIX + "ARROW_" + last_decision_id;
-   if(ObjectFind(0, name) < 0)
-      ObjectCreate(0, name, arrow_type, 0, TimeCurrent(), anchor_price);
+   ObjectCreate(0, name, arrow_type, 0, TimeCurrent(), anchor_price);
    ObjectSetInteger(0, name, OBJPROP_COLOR, arrow_color);
    ObjectSetInteger(0, name, OBJPROP_WIDTH, 2);
 }
