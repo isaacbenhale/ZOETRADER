@@ -21,6 +21,12 @@ Workflow Git : travailler directement sur `main` et pousser sur `main` apres cha
 13. `13-backtesting-validation.md`
 14. `14-local-operations.md`
 15. `15-auto-gate-vps-readiness.md`
+16. `16-strategy-library-completion.md`
+17. `17-strategy-library-backtest-runner.md`
+18. `18-local-web-ui.md`
+19. `19-manual-approval-execution.md`
+20. `20-web-manual-approval-and-resume.md`
+21. `21-auto-mode-execution.md`
 
 ## Gates
 

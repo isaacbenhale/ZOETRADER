@@ -15,9 +15,16 @@ from zoetrading.config.models import AppConfig
 from zoetrading.domain import RuntimeMode
 from zoetrading.execution import ExecutionEngine
 from zoetrading.journal import JournalStore
-from zoetrading.market import MT5Client, MT5ConnectionError, MarketDataEngine
+from zoetrading.market import MarketDataEngine, MT5Client, MT5ConnectionError
 from zoetrading.risk import AccountRiskState
-from zoetrading.runtime import ManualApprovalLoop, RuntimeEngine, connect_mt5_from_env
+from zoetrading.runtime import (
+    AutoTradingLoop,
+    ManualApprovalLoop,
+    RuntimeEngine,
+    connect_mt5_from_env,
+)
+from zoetrading.validation import AutoGateVerdict, AutoValidationGate, load_auto_gate_evidence
+from zoetrading.validation.auto_gate import AutoGateEvidenceError
 
 
 @dataclass(frozen=True)
@@ -122,6 +129,31 @@ def cli(argv: list[str] | None = None) -> int:
         help="Stop after N scan cycles instead of running forever (mainly for testing).",
     )
 
+    auto_loop = subparsers.add_parser(
+        "auto-loop",
+        help=(
+            "Run AUTO: scan and execute every risk-approved decision automatically, no click required. "
+            "Blocked unless --gate-evidence proves the AUTO gate passes."
+        ),
+    )
+    auto_loop.add_argument("--config-dir", default=os.getenv("ZOETRADING_CONFIG_DIR", "config"))
+    auto_loop.add_argument("--journal-db", default="data/trading.db")
+    auto_loop.add_argument("--status-file", default="data/zoetrading_status.csv")
+    auto_loop.add_argument("--command-file", default="data/zoetrading_command.csv")
+    auto_loop.add_argument(
+        "--gate-evidence",
+        required=True,
+        help="Path to a JSON file with documented AUTO gate evidence (see docs/auto-gate.md).",
+    )
+    auto_loop.add_argument("--equity", type=float, required=True)
+    auto_loop.add_argument("--candle-count", type=int, default=200)
+    auto_loop.add_argument(
+        "--max-cycles",
+        type=int,
+        default=None,
+        help="Stop after N scan cycles instead of running forever (mainly for testing).",
+    )
+
     ui = subparsers.add_parser(
         "ui",
         help="Serve the local-only web UI (read status/decisions/backtests, launch operations).",
@@ -152,6 +184,8 @@ def cli(argv: list[str] | None = None) -> int:
             return _backtest(args)
         if command == "approve-loop":
             return _approve_loop(args)
+        if command == "auto-loop":
+            return _auto_loop(args)
         if command == "ui":
             return _ui(args)
     except ConfigError as exc:
@@ -322,6 +356,68 @@ def _approve_loop(args: argparse.Namespace) -> int:
                 cycles += 1
                 if loop.kill_switch and not was_killed:
                     print("KILL SWITCH engaged: no further scans until RESUME is clicked in MT5 or the web UI.")
+                elif not loop.kill_switch and was_killed:
+                    print("RESUME received: scanning again.")
+                was_killed = loop.kill_switch
+                if result.outcome == "paused":
+                    print("Paused by operator. Exiting.")
+                    break
+                if args.max_cycles is None or cycles < args.max_cycles:
+                    time.sleep(config.settings.market.refresh_interval_seconds)
+        except KeyboardInterrupt:
+            print("Interrupted by user. Exiting cleanly.")
+    return 0
+
+
+def _auto_loop(args: argparse.Namespace) -> int:
+    try:
+        evidence = load_auto_gate_evidence(args.gate_evidence)
+    except AutoGateEvidenceError as exc:
+        print(f"AUTO gate evidence FAILED: {exc}")
+        return 2
+
+    gate_decision = AutoValidationGate().evaluate(evidence)
+    if gate_decision.verdict is not AutoGateVerdict.ALLOW:
+        print("AUTO mode BLOCKED: " + "; ".join(gate_decision.reasons))
+        return 1
+
+    config = load_app_config(args.config_dir)
+    client = MT5Client()
+    connect_mt5_from_env(client)
+    with JournalStore(args.journal_db) as journal:
+        runtime_engine = RuntimeEngine(config, mt5_client=client, journal=journal, status_file=args.status_file)
+        execution_engine = ExecutionEngine(client, config.settings.execution, journal=journal)
+        loop = AutoTradingLoop(
+            runtime_engine,
+            execution_engine,
+            journal=journal,
+            command_file=args.command_file,
+            gate_decision=gate_decision,
+        )
+
+        print(
+            "auto-loop started: AUTO scans run every "
+            f"{config.settings.market.refresh_interval_seconds}s and execute risk-approved decisions "
+            "immediately, no click required. KILL_SWITCH/PAUSE/REJECT from MT5 or the web UI are still honored. "
+            "Ctrl+C to stop."
+        )
+        cycles = 0
+        was_killed = False
+        try:
+            while args.max_cycles is None or cycles < args.max_cycles:
+                result = loop.run_cycle(equity=args.equity, candle_count=args.candle_count)
+                print(f"cycle={cycles} scanned={result.scanned} outcome={result.outcome}")
+                if result.display_decision is not None and result.display_decision.final_action.value != "NO_TRADE":
+                    signal = result.display_decision.signal
+                    print(
+                        f"  decision instrument={signal.instrument} action={result.display_decision.final_action.value} "
+                        f"strategy={signal.strategy} score={signal.setup_score}"
+                    )
+                if result.order_result is not None:
+                    print(f"  order status={result.order_result.status.value} message={result.order_result.message}")
+                cycles += 1
+                if loop.kill_switch and not was_killed:
+                    print("KILL SWITCH engaged: no further orders until RESUME is clicked in MT5 or the web UI.")
                 elif not loop.kill_switch and was_killed:
                     print("RESUME received: scanning again.")
                 was_killed = loop.kill_switch

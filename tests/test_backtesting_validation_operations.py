@@ -1,7 +1,8 @@
+import json
+import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import unittest
 
 from zoetrading.backtesting import (
     BacktestEngine,
@@ -13,7 +14,14 @@ from zoetrading.backtesting import (
 )
 from zoetrading.domain import Candle, MarketRegime, Signal, TradeAction
 from zoetrading.operations import backup_runtime_files, heartbeat_status
-from zoetrading.validation import AutoGateEvidence, AutoGateVerdict, AutoValidationGate, check_vps_readiness
+from zoetrading.validation import (
+    AutoGateEvidence,
+    AutoGateEvidenceError,
+    AutoGateVerdict,
+    AutoValidationGate,
+    check_vps_readiness,
+    load_auto_gate_evidence,
+)
 
 
 def make_candles(closes: list[float]) -> tuple[Candle, ...]:
@@ -129,6 +137,52 @@ class BacktestingValidationOperationsTests(unittest.TestCase):
         )
 
         self.assertEqual(decision.verdict, AutoGateVerdict.ALLOW)
+
+    def test_load_auto_gate_evidence_reads_a_documented_json_file(self) -> None:
+        metrics = {
+            "trades": 30,
+            "win_rate": 0.55,
+            "expectancy": 0.2,
+            "profit_factor": 1.4,
+            "max_drawdown": 2.0,
+            "average_win": 1.0,
+            "average_loss": -0.7,
+            "mfe": 1.3,
+            "mae": -0.6,
+        }
+        with TemporaryDirectory() as tmp:
+            evidence_path = Path(tmp) / "auto_gate_evidence.json"
+            evidence_path.write_text(
+                json.dumps(
+                    {
+                        "backtest": metrics,
+                        "out_of_sample": metrics,
+                        "demo_trades": 10,
+                        "shadow_trades": 10,
+                        "manual_trades": 10,
+                        "max_allowed_drawdown": 3.0,
+                        "documented": True,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            evidence = load_auto_gate_evidence(evidence_path)
+            decision = AutoValidationGate().evaluate(evidence)
+
+        self.assertEqual(decision.verdict, AutoGateVerdict.ALLOW)
+
+    def test_load_auto_gate_evidence_rejects_missing_file(self) -> None:
+        with self.assertRaises(AutoGateEvidenceError):
+            load_auto_gate_evidence("/nonexistent/auto_gate_evidence.json")
+
+    def test_load_auto_gate_evidence_rejects_missing_fields(self) -> None:
+        with TemporaryDirectory() as tmp:
+            evidence_path = Path(tmp) / "auto_gate_evidence.json"
+            evidence_path.write_text(json.dumps({"documented": True}), encoding="utf-8")
+
+            with self.assertRaises(AutoGateEvidenceError):
+                load_auto_gate_evidence(evidence_path)
 
     def test_vps_readiness_blocks_business_logic_changes(self) -> None:
         report = check_vps_readiness(
